@@ -4,6 +4,7 @@
   "description": "Webhook server for pm2",
   "main": "index.js",
   "scripts": {
+    "lint": "eslint ./src",
     "test": "_mocha",
     "test:cover": "istanbul cover ./node_modules/.bin/_mocha"
   },
@@ -24,15 +25,20 @@
   "dependencies": {
     "body-parser": "^1.16.1",
     "lodash": "^4.17.4",
+    "promisify-node": "^0.4.0",
     "require-dir": "^0.3.1"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
     "co": "^4.6.0",
+    "eslint": "^3.16.1",
+    "eslint-config-airbnb": "^14.1.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^4.0.0",
+    "eslint-plugin-react": "^6.10.0",
     "istanbul": "^0.4.5",
     "mocha": "^3.2.0",
-    "promisify-node": "^0.4.0",
     "request": "^2.79.0",
     "request-promise": "^4.1.1",
     "sinon": "^1.17.7",
