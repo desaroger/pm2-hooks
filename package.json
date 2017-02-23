@@ -22,13 +22,20 @@
   },
   "homepage": "https://github.com/desaroger/pm2-hooks#readme",
   "dependencies": {
+    "body-parser": "^1.16.1",
     "lodash": "^4.17.4",
     "require-dir": "^0.3.1"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
+    "co": "^4.6.0",
     "istanbul": "^0.4.5",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "promisify-node": "^0.4.0",
+    "request": "^2.79.0",
+    "request-promise": "^4.1.1",
+    "sinon": "^1.17.7",
+    "url-join": "^1.1.0"
   }
 }
