@@ -9,7 +9,6 @@ let r = require('request-promise');
 let { expect, c } = require('./assets');
 let WebhookServer = require('../src/WebhookServer');
 
-let G = c;
 let callToApi = (path, payload, options = {}) => {
     path = urlJoin('http://localhost:1234', path);
     _.defaults(options, {
@@ -103,7 +102,7 @@ describe('webhookServer', () => {
             calls = 0;
         });
 
-        it('the server is actually listening', G(function* () {
+        it('the server is actually listening', c(function* () {
             let spy = sinon.spy(whs, '_handleCall');
             yield whs.start();
             yield callToApi();
@@ -112,7 +111,7 @@ describe('webhookServer', () => {
             spy.restore();
         }));
 
-        it('returns success if the route works', G(function* () {
+        it('returns success if the route works', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
             let body = yield callToApi('/working');
@@ -124,7 +123,7 @@ describe('webhookServer', () => {
             expect(calls).to.equal(1);
         }));
 
-        it('works even though there is no type', G(function* () {
+        it('works even though there is no type', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
             let body = yield callToApi('/withoutType');
@@ -136,7 +135,7 @@ describe('webhookServer', () => {
             expect(calls).to.equal(1);
         }));
 
-        it('returns a warning if called a non-existent route', G(function* () {
+        it('returns a warning if called a non-existent route', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
             let body = yield callToApi('/lol');
@@ -148,7 +147,7 @@ describe('webhookServer', () => {
             expect(calls).to.equal(0);
         }));
 
-        it('returns an error if the method triggers an error', G(function* () {
+        it('returns an error if the method triggers an error', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
             let body = yield callToApi('/throwsError');
@@ -160,7 +159,7 @@ describe('webhookServer', () => {
             expect(calls).to.equal(0);
         }));
 
-        it('returns an error if the method triggers a value', G(function* () {
+        it('returns an error if the method triggers a value', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
             let body = yield callToApi('/throwsString');
@@ -172,7 +171,7 @@ describe('webhookServer', () => {
             expect(calls).to.equal(0);
         }));
 
-        it('pass the payload to the method', G(function* () {
+        it('pass the payload to the method', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
             method = (payload) => {
