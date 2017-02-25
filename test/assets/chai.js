@@ -3,8 +3,8 @@
  */
 
 let chai = require('chai');
-let chaiAsPromised = require('chai-as-promised');
 
-chai.use(chaiAsPromised);
+chai.use(require('chai-as-promised'));
+chai.use(require('chai-shallow-deep-equal'));
 
 module.exports = chai;
