@@ -1,6 +1,6 @@
 {
   "name": "pm2-hooks",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Webhook server for pm2",
   "main": "index.js",
   "scripts": {
@@ -25,14 +25,17 @@
   "homepage": "https://github.com/desaroger/pm2-hooks#readme",
   "dependencies": {
     "body-parser": "^1.16.1",
+    "co": "^4.6.0",
     "lodash": "^4.17.4",
+    "pm2": "^2.4.0",
+    "pmx": "^1.0.3",
     "promisify-node": "^0.4.0",
     "require-dir": "^0.3.1"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
-    "co": "^4.6.0",
+    "chai-shallow-deep-equal": "^1.4.4",
     "eslint": "^3.16.1",
     "eslint-config-airbnb": "^14.1.0",
     "eslint-plugin-import": "^2.2.0",
