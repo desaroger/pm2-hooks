@@ -3,21 +3,36 @@
  */
 
 let _ = require('lodash');
+let co = require('co');
+let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
 
 class Pm2Module {
 
     constructor(processes = [], options = {}) {
         options.routes = Pm2Module._parseProcesses(processes);
+        this.routes = options.routes;
         this.webhookServer = new WebhookServer(options);
     }
 
     start() {
-        return this.webhookServer.start();
+        return this.webhookServer.start()
+            .then(() => {
+                console.log('');
+                console.log('Started. Routes:');
+                _.forOwn(this.routes, (route, name) => {
+                    console.log(` - ${name}: ${JSON.stringify(route)}`);
+                });
+                console.log('');
+            });
     }
 
     stop() {
-        return this.webhookServer.stop();
+        return this.webhookServer.stop()
+            .then(() => {
+                console.log('Stopped.');
+                console.log('');
+            });
     }
 
     /**
@@ -77,18 +92,54 @@ class Pm2Module {
             return null;
         }
         let data = _.get(process, 'pm2_env.env_hook');
+        if (data === true) {
+            data = {};
+        }
 
         // Data to WebhookServer route
+        let self = this;
         let route = {
             name: process.name || 'unknown',
             type: data.type,
-            method() {
-
-            }
+            method: co.wrap(function* () {
+                if (data.command) {
+                    yield self._runCommand(data.command);
+                }
+               // console.log('asd', Object.keys(data));
+                yield {};
+                if (data) {
+                    return true;
+                }
+            })
         };
         route = cleanObj(route);
 
         return route;
+    }
+
+    /**
+     * Runs a line command.
+     *
+     * @param {String} command The line to execute
+     * @param {Object} options The object options
+     * @returns {Promise<code>} The code of the error, or a void fulfilled promise
+     * @private
+     */
+    static _runCommand(command, options = {}) {
+        _.defaults(options, {
+            env: process.env,
+            shell: true
+        });
+        return new Promise((resolve, reject) => {
+            let child = childProcess.spawn('eval', [command], options);
+            child.on('close', (code) => {
+                if (!code) {
+                    resolve();
+                } else {
+                    reject(code);
+                }
+            });
+        });
     }
 }
 

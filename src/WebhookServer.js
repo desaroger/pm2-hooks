@@ -17,10 +17,6 @@ class WebhookServer {
             port: process.env.PORT || 9000,
             routes: {}
         });
-        console.log('');
-        console.log('ROUTES');
-        console.log('options routes', options.routes);
-        console.log('');
         this.options = options;
     }
 
@@ -72,6 +68,7 @@ class WebhookServer {
             let routeName = this._getRouteName(req);
             let route = this.options.routes[routeName];
             if (!route) {
+                console.log(`Warning: Route "${routeName}" not found`);
                 res.end(JSON.stringify({
                     status: 'warning',
                     message: `Route "${routeName}" not found`,
@@ -89,9 +86,10 @@ class WebhookServer {
                 if (message.message) {
                     message = message.message;
                 }
+                console.log(`Error: Route "${routeName}" method error: ${message}`);
                 res.end(JSON.stringify({
                     status: 'error',
-                    message: `Route method error: ${message}`,
+                    message: `Route "${routeName}" method error: ${message}`,
                     code: 2
                 }));
                 return;
@@ -137,7 +135,7 @@ class WebhookServer {
      * @returns {boolean} True if the server is running
      */
     isRunning() {
-        return !!(this.server && this.server.running);
+        return !!(this.server && this.server.address());
     }
 
 }
