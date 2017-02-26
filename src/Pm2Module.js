@@ -6,6 +6,7 @@ let _ = require('lodash');
 let co = require('co');
 let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
+let { log } = require('./utils');
 
 class Pm2Module {
 
@@ -18,20 +19,18 @@ class Pm2Module {
     start() {
         return this.webhookServer.start()
             .then(() => {
-                console.log('');
-                console.log('Started. Routes:');
+                let msg = 'Started. Routes:\n';
                 _.forOwn(this.routes, (route, name) => {
-                    console.log(` - ${name}: ${JSON.stringify(route)}`);
+                    msg += ` - ${name}: ${JSON.stringify(route)}\n`;
                 });
-                console.log('');
+                log(msg);
             });
     }
 
     stop() {
         return this.webhookServer.stop()
             .then(() => {
-                console.log('Stopped.');
-                console.log('');
+                log('Stopped.');
             });
     }
 
@@ -98,17 +97,20 @@ class Pm2Module {
 
         // Data to WebhookServer route
         let self = this;
+        let name = process.name || 'unknown';
         let route = {
-            name: process.name || 'unknown',
+            name,
             type: data.type,
             method: co.wrap(function* () {
-                if (data.command) {
-                    yield self._runCommand(data.command);
-                }
-               // console.log('asd', Object.keys(data));
-                yield {};
-                if (data) {
-                    return true;
+                try {
+                    if (data.command) {
+                        log(`Running command: ${data.command}`);
+                        yield self._runCommand(data.command);
+                    }
+                } catch (e) {
+                    let err = e.message || e;
+                    log(`${name}: Error: ${err}`, 2);
+                    throw e;
                 }
             })
         };

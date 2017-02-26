@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "eslint src test",
     "pretest": "npm run lint",
-    "test": "_mocha",
+    "test": "NODE_ENV=test _mocha",
     "test:cover": "istanbul cover ./node_modules/.bin/_mocha"
   },
   "repository": {

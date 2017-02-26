@@ -6,9 +6,13 @@ let _ = require('lodash');
 let Pm2Module = require('../src/Pm2Module');
 let WebhookServer = require('../src/WebhookServer');
 let mockApps = require('./mocks/apps');
-let { expect, c, callApi, mockSpawn } = require('./assets');
+let { expect, c, callApi, mockSpawn, log } = require('./assets');
 
 describe('Pm2Module', () => {
+    afterEach(() => {
+        log.restore();
+    });
+
     it('is a function', () => {
         expect(Pm2Module).to.be.a('function');
     });
@@ -76,17 +80,30 @@ describe('Pm2Module', () => {
         });
 
         it('returns the warning if not found', c(function* () {
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "nope" not found/i);
+                expect(status).to.equal(1);
+            });
             let result = yield callApi('/nope');
             expect(result).to.shallowDeepEqual({
                 status: 'warning',
                 message: 'Route "nope" not found',
                 code: 1
             });
+            expect(log.count).to.equal(1);
         }));
 
         it('runs the command', c(function* () {
             mockSpawn.start((command, options) => {
                 expect(command).to.equal('echo hi');
+            });
+            log.mock((msg, status) => {
+                expect(msg).to.match(/running command: echo hi/i);
+                expect(status).to.equal(0);
+            });
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "a" was found/i);
+                expect(status).to.equal(0);
             });
             let result = yield callApi('/a');
             expect(result).to.shallowDeepEqual({
@@ -94,6 +111,7 @@ describe('Pm2Module', () => {
                 message: 'Route "a" was found',
                 code: 0
             });
+            expect(log.count).to.equal(2);
         }));
 
         it.skip('shows error if command error', c(function* () {

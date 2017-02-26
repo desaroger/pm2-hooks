@@ -3,7 +3,7 @@
  */
 
 let sinon = require('sinon');
-let { expect, c, callApi } = require('./assets');
+let { expect, c, callApi, log } = require('./assets');
 let WebhookServer = require('../src/WebhookServer');
 
 describe('webhookServer', () => {
@@ -90,20 +90,38 @@ describe('webhookServer', () => {
         afterEach(() => {
             whs.stop();
             calls = 0;
+            log.restore();
         });
 
         it('the server is actually listening', c(function* () {
             let spy = sinon.spy(whs, '_handleCall');
             yield whs.start();
+            log.restore();
+
+            // Logs
+            log.mock((msg, status) => {
+                expect(msg).to.match(/no route found on url/i);
+                expect(status).to.equal(1);
+            });
             yield callApi();
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "asd" not found/i);
+                expect(status).to.equal(1);
+            });
             yield callApi('/asd');
+
             expect(spy.calledTwice).to.equal(true);
             spy.restore();
+            expect(log.count).to.equal(2);
         }));
 
         it('returns success if the route works', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "working" was found/i);
+                expect(status).to.equal(0);
+            });
             let body = yield callApi('/working');
             expect(body).to.be.deep.equal({
                 status: 'success',
@@ -111,11 +129,16 @@ describe('webhookServer', () => {
                 code: 0
             });
             expect(calls).to.equal(1);
+            expect(log.count).to.equal(1);
         }));
 
         it('works even though there is no type', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "withoutType" was found/i);
+                expect(status).to.equal(0);
+            });
             let body = yield callApi('/withoutType');
             expect(body).to.be.deep.equal({
                 status: 'success',
@@ -123,11 +146,16 @@ describe('webhookServer', () => {
                 code: 0
             });
             expect(calls).to.equal(1);
+            expect(log.count).to.equal(1);
         }));
 
         it('returns a warning if called a non-existent route', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "lol" not found/i);
+                expect(status).to.equal(1);
+            });
             let body = yield callApi('/lol');
             expect(body).to.be.deep.equal({
                 status: 'warning',
@@ -140,6 +168,10 @@ describe('webhookServer', () => {
         it('returns an error if the method triggers an error', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "throwsError" method error: Test error/i);
+                expect(status).to.equal(2);
+            });
             let body = yield callApi('/throwsError');
             expect(body).to.be.deep.equal({
                 status: 'error',
@@ -152,6 +184,10 @@ describe('webhookServer', () => {
         it('returns an error if the method triggers a value', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "throwsString" method error: Test throw string/i);
+                expect(status).to.equal(2);
+            });
             let body = yield callApi('/throwsString');
             expect(body).to.be.deep.equal({
                 status: 'error',
@@ -171,6 +207,10 @@ describe('webhookServer', () => {
                     branch: 'master'
                 });
             };
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "checkPayload" was found/i);
+                expect(status).to.equal(0);
+            });
             let body = yield callApi('/checkPayload',
                 {
                     name: 'test',
@@ -351,16 +391,16 @@ describe('webhookServer', () => {
 //             svn_url: "https://github.com/baxterthehacker/public-repo",
 //             homepage: null,
 //             size: 0,
-//             stargazers_count: 0,
-//             watchers_count: 0,
+//             stargazers_logs: 0,
+//             watchers_logs: 0,
 //             language: null,
 //             has_issues: true,
 //             has_downloads: true,
 //             has_wiki: true,
 //             has_pages: true,
-//             forks_count: 0,
+//             forks_logs: 0,
 //             mirror_url: null,
-//             open_issues_count: 0,
+//             open_issues_logs: 0,
 //             forks: 0,
 //             open_issues: 0,
 //             watchers: 0,
