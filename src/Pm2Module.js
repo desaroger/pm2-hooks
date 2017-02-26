@@ -11,15 +11,28 @@ class Pm2Module {
 
     constructor(processes = [], options = {}) {
         options.routes = Pm2Module._parseProcesses(processes);
+        this.routes = options.routes;
         this.webhookServer = new WebhookServer(options);
     }
 
     start() {
-        return this.webhookServer.start();
+        return this.webhookServer.start()
+            .then(() => {
+                console.log('');
+                console.log('Started. Routes:');
+                _.forOwn(this.routes, (route, name) => {
+                    console.log(` - ${name}: ${JSON.stringify(route)}`);
+                });
+                console.log('');
+            });
     }
 
     stop() {
-        return this.webhookServer.stop();
+        return this.webhookServer.stop()
+            .then(() => {
+                console.log('Stopped.');
+                console.log('');
+            });
     }
 
     /**

@@ -2,7 +2,6 @@
  * Created by desaroger on 26/02/17.
  */
 
-let _ = require('lodash');
 let childProcess = require('child_process');
 let mockSpawn = require('mock-spawn');
 
