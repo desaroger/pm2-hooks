@@ -1,5 +1,12 @@
 # pm2-hooks
 
+[![GitHub version][fury-badge]][fury-url]
+[![Travis-CI][travis-badge]][travis-url]
+[![Codeclimate][codeclimate-badge]][codeclimate-url]
+[![Codeclimate Coverage][codeclimate-cov-badge]][codeclimate-cov-url]
+[![Dependency][david-badge]][david-url]
+[![DevDependency][david-dev-badge]][david-dev-url]
+
 PM2 module to listen webhooks from github, bitbucket, gitlab, jenkins and droneci. When a webhook is received you can run a script, pull your project, restart pm2, etc.
 
 This project is highly inspired by [vmarchaud/pm2-githook](https://github.com/vmarchaud/pm2-githook).
@@ -127,3 +134,30 @@ These are some projects I found similar to mine. Please let me know if you know 
 Copyright 2016 Roger Fos Soler
 
 Licensed under the [MIT License](/LICENSE).
+
+
+[npm-badge]: https://img.shields.io/npm/v/pm2-hooks.svg
+[npm-url]: https://www.npmjs.com/package/pm2-hooks
+
+[fury-badge]: https://badge.fury.io/js/pm2-hooks.svg
+[fury-url]: https://www.npmjs.com/package/pm2-hooks
+
+[travis-badge]: https://travis-ci.org/desaroger/pm2-hooks.svg
+[travis-url]: https://travis-ci.org/desaroger/pm2-hooks
+
+[david-badge]: https://david-dm.org/desaroger/pm2-hooks.svg
+[david-url]: https://david-dm.org/desaroger/pm2-hooks
+[david-dev-badge]: https://david-dm.org/desaroger/pm2-hooks/dev-status.svg
+[david-dev-url]: https://david-dm.org/desaroger/pm2-hooks#info=devDependencies
+
+[gemnasium-badge]: https://gemnasium.com/badges/github.com/desaroger/pm2-hooks.svg
+[gemnasium-url]: https://gemnasium.com/github.com/desaroger/pm2-hooks
+
+[codeclimate-badge]: https://codeclimate.com/github/desaroger/pm2-hooks/badges/gpa.svg
+[codeclimate-url]: https://codeclimate.com/github/desaroger/pm2-hooks
+
+[codeclimate-cov-badge]: https://codeclimate.com/github/desaroger/pm2-hooks/badges/coverage.svg?hash=1
+[codeclimate-cov-url]: https://codeclimate.com/github/desaroger/pm2-hooks/coverage
+
+[coverage-badge]: https://codeclimate.com/github/desaroger/pm2-hooks/badges/coverage.svg
+[coverage-url]: https://codeclimate.com/github/desaroger/pm2-hooks/coverage
