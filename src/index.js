@@ -18,12 +18,13 @@ pmx.initModule({}, (errPMX, conf) => {
 
             console.log('');
             console.log('');
-            console.log('///////////');
+            console.log('>>>>>');
             apps.forEach((app) => {
                 console.log('name', app.name);
                 console.log('cwd', app.pm2_env.pm_cwd);
                 console.log('webhook', app.pm2_env.webhook);
             });
+            console.log('fin');
             // console.log('');
             // console.log('//////////2');
             // apps.forEach((app) => {
