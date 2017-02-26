@@ -68,6 +68,7 @@ class WebhookServer {
             let routeName = this._getRouteName(req);
             let route = this.options.routes[routeName];
             if (!route) {
+                console.log(`Warning: Route "${routeName}" not found`);
                 res.end(JSON.stringify({
                     status: 'warning',
                     message: `Route "${routeName}" not found`,
@@ -85,9 +86,10 @@ class WebhookServer {
                 if (message.message) {
                     message = message.message;
                 }
+                console.log(`Error: Route "${routeName}" method error: ${message}`);
                 res.end(JSON.stringify({
                     status: 'error',
-                    message: `Route method error: ${message}`,
+                    message: `Route "${routeName}" method error: ${message}`,
                     code: 2
                 }));
                 return;

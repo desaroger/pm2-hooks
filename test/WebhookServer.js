@@ -143,7 +143,7 @@ describe('webhookServer', () => {
             let body = yield callApi('/throwsError');
             expect(body).to.be.deep.equal({
                 status: 'error',
-                message: 'Route method error: Test error',
+                message: 'Route "throwsError" method error: Test error',
                 code: 2
             });
             expect(calls).to.equal(0);
@@ -155,7 +155,7 @@ describe('webhookServer', () => {
             let body = yield callApi('/throwsString');
             expect(body).to.be.deep.equal({
                 status: 'error',
-                message: 'Route method error: Test throw string',
+                message: 'Route "throwsString" method error: Test throw string',
                 code: 2
             });
             expect(calls).to.equal(0);
