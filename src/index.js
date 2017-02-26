@@ -21,12 +21,13 @@ pmx.initModule({}, (errPMX, conf) => {
             console.log('///////////');
             apps.forEach((app) => {
                 console.log('name', app.name);
-                console.log('cwd', app.pm2_env.pm2_cwd);
+                console.log('cwd', app.pm2_env.pm_cwd);
                 console.log('webhook', app.pm2_env.webhook);
             });
             console.log('');
             console.log('//////////2');
             apps.forEach((app) => {
+                delete app.env;
                 console.log('app', app);
             });
         });
