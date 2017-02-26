@@ -103,6 +103,7 @@ class Pm2Module {
             type: data.type,
             method: co.wrap(function* () {
                 if (data.command) {
+                    console.log('Running command: ' + data.command);
                     yield self._runCommand(data.command);
                 }
                // console.log('asd', Object.keys(data));
