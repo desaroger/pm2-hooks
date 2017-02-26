@@ -22,7 +22,7 @@ pmx.initModule({}, (errPMX, conf) => {
             apps.forEach((app) => {
                 console.log('name', app.name);
                 console.log('cwd', app.pm2_env.pm_cwd);
-                console.log('webhook', app.pm2_env.webhook);
+                console.log('webhook', app.pm2_env.env_hook);
             });
             console.log('fin');
             // console.log('');
