@@ -5,6 +5,7 @@
 const _ = require('lodash');
 const http = require('http');
 const bodyParser = require('body-parser');
+const { log } = require('./utils');
 
 class WebhookServer {
 
@@ -66,9 +67,18 @@ class WebhookServer {
         })(req, res, () => {
             // Mock
             let routeName = this._getRouteName(req);
+            if (!routeName) {
+                log('No route found on url', 1);
+                res.end(JSON.stringify({
+                    status: 'warning',
+                    message: 'No route found on url',
+                    code: 1
+                }));
+                return;
+            }
             let route = this.options.routes[routeName];
             if (!route) {
-                console.log(`Warning: Route "${routeName}" not found`);
+                log(`Warning: Route "${routeName}" not found`, 1);
                 res.end(JSON.stringify({
                     status: 'warning',
                     message: `Route "${routeName}" not found`,
@@ -86,7 +96,7 @@ class WebhookServer {
                 if (message.message) {
                     message = message.message;
                 }
-                console.log(`Error: Route "${routeName}" method error: ${message}`);
+                log(`Error: Route "${routeName}" method error: ${message}`, 2);
                 res.end(JSON.stringify({
                     status: 'error',
                     message: `Route "${routeName}" method error: ${message}`,
@@ -95,6 +105,7 @@ class WebhookServer {
                 return;
             }
 
+            log(`Success: Route "${routeName}" was found`, 0);
             res.end(JSON.stringify({
                 status: 'success',
                 message: `Route "${routeName}" was found`,

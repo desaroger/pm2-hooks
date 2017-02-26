@@ -1,12 +1,12 @@
 {
   "name": "pm2-hooks",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Webhook server for pm2",
   "main": "index.js",
   "scripts": {
     "lint": "eslint src test",
     "pretest": "npm run lint",
-    "test": "_mocha",
+    "test": "NODE_ENV=test _mocha",
     "test:cover": "istanbul cover ./node_modules/.bin/_mocha"
   },
   "repository": {
