@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.0.7 - 2017-02-26
+### Add
+- Badges
+
 ## 1.0.6 - 2017-02-26
 ### Add
 - Babel
