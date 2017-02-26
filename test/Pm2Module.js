@@ -69,7 +69,7 @@ describe('Pm2Module', () => {
 
         it('works with a real processes array', () => {
             let result = Pm2Module._parseProcesses(mockApps);
-            expect(result).to.have.all.keys(['api', 'api2', 'panel'])
+            expect(result).to.have.all.keys(['api', 'api2', 'panel']);
             expect(result).to.shallowDeepEqual({
                 api: {
                     type: 'bitbucket'
@@ -107,6 +107,36 @@ describe('Pm2Module', () => {
                 name: 'lol',
                 type: 'bitbucket'
             });
+        });
+    });
+
+    describe('method _runCommand', () => {
+        it('exists', () => {
+            expect(Pm2Module._runCommand).to.be.a('function');
+        });
+
+        it('returns a promise', () => {
+            let result = Pm2Module._runCommand('echo hi');
+            expect(result).to.be.ok;
+            expect(result.then).to.be.a('function');
+            expect(result.catch).to.be.a('function');
+        });
+
+        it('runs the line', () => {
+            return Pm2Module._runCommand('echo hi')
+                .then((result) => {
+                    expect(result).to.not.be.ok;
+                })
+                .catch((err) => {
+                    expect(err).to.not.be.ok;
+                });
+        });
+
+        it('throws an error if fails', () => {
+            return Pm2Module._runCommand('ecssssho hi')
+                .catch((err) => {
+                    expect(err).to.be.ok;
+                });
         });
     });
 });

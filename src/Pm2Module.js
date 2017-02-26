@@ -3,6 +3,7 @@
  */
 
 let _ = require('lodash');
+let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
 
 class Pm2Module {
@@ -84,11 +85,37 @@ class Pm2Module {
             type: data.type,
             method() {
 
+
             }
         };
         route = cleanObj(route);
 
         return route;
+    }
+
+    /**
+     * Runs a line command.
+     *
+     * @param {String} command The line to execute
+     * @param {Object} options The object options
+     * @returns {Promise<code>} The code of the error, or a void fulfilled promise
+     * @private
+     */
+    static _runCommand(command, options = {}) {
+        _.defaults(options, {
+            env: process.env,
+            shell: true
+        });
+        return new Promise((resolve, reject) => {
+            let child = childProcess.spawn('eval', [command], options);
+            child.on('close', (code) => {
+                if (!code) {
+                    resolve();
+                } else {
+                    reject(code);
+                }
+            });
+        });
     }
 }
 
