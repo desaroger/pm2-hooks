@@ -28,8 +28,8 @@ class Pm2Module {
      * Example 1:
      * - input:
      * [
-     *      { pm2_env: { webhook: { name: 'api', type: 'bitbucket' } } },
-     *      { pm2_env: { webhook: { name: 'panel', type: 'github' } } }
+     *      { pm2_env: { env_hook: { name: 'api', type: 'bitbucket' } } },
+     *      { pm2_env: { env_hook: { name: 'panel', type: 'github' } } }
      * ]
      * - output:
      * {
@@ -57,10 +57,10 @@ class Pm2Module {
      * route.
      *
      * Example 1:
-     * - input: { pm2_env: { webhook: { name: 'api', type: 'bitbucket' } } }
+     * - input: { pm2_env: { env_hook: { name: 'api', type: 'bitbucket' } } }
      * - output: { name: 'api', type: 'bitbucket' }
      * Example 2:
-     * - input: { pm2_env: { webhook: { type: 'bitbucket' } } }
+     * - input: { pm2_env: { env_hook: { type: 'bitbucket' } } }
      * - output: { name: 'unknown', type: 'bitbucket' }
      *
      * @param process The Pm2 process
@@ -72,16 +72,15 @@ class Pm2Module {
         if (!process) {
             return null;
         }
-        let processOptions = _.get(process, 'pm2_env.webhook');
+        let processOptions = _.get(process, 'pm2_env.env_hook');
         if (!processOptions) {
             return null;
         }
-        let processEnv = process.pm2_env;
-        let data = _.get(process, 'pm2_env.webhook');
+        let data = _.get(process, 'pm2_env.env_hook');
 
         // Data to WebhookServer route
         let route = {
-            name: data.name || 'unknown',
+            name: process.name || 'unknown',
             type: data.type,
             method() {
 

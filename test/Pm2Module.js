@@ -5,6 +5,7 @@
 let _ = require('lodash');
 let Pm2Module = require('../src/Pm2Module');
 let WebhookServer = require('../src/WebhookServer');
+let mockApps = require('./mocks/apps');
 let { expect } = require('./assets');
 
 describe('Pm2Module', () => {
@@ -19,10 +20,10 @@ describe('Pm2Module', () => {
     describe('instance', (pm2Module) => {
         before(() => {
             let apps = [
-                wrapEnv({ name: 'a', type: 'github' }),
-                wrapEnv({ name: 'b', type: 'bitbucket' }),
-                wrapEnv({ name: 'c', type: 'gitlab' }),
-                wrapEnv({ name: 'd' })
+                wrapEnv('a', { type: 'github' }),
+                wrapEnv('b', { type: 'bitbucket' }),
+                wrapEnv('c', { type: 'gitlab' }),
+                wrapEnv('d', { })
             ];
             pm2Module = new Pm2Module(apps);
         });
@@ -65,6 +66,20 @@ describe('Pm2Module', () => {
             expect(Object.keys(result)).to.have.length(1);
             expect(result.unknown).to.be.ok;
         });
+
+        it('works with a real processes array', () => {
+            let result = Pm2Module._parseProcesses(mockApps);
+            expect(result).to.have.all.keys(['api', 'api2', 'panel'])
+            expect(result).to.shallowDeepEqual({
+                api: {
+                    type: 'bitbucket'
+                },
+                api2: {},
+                panel: {
+                    type: 'gitlab'
+                }
+            });
+        });
     });
 
     describe('method _parseProcess', () => {
@@ -86,15 +101,16 @@ describe('Pm2Module', () => {
         });
 
         it('returns the route if valid object', () => {
-            let obj = wrapEnv({ type: 'bitbucket' });
+            let obj = wrapEnv('lol', { type: 'bitbucket' });
             let result = Pm2Module._parseProcess(obj);
             expect(result).to.shallowDeepEqual({
+                name: 'lol',
                 type: 'bitbucket'
             });
         });
     });
 });
 
-function wrapEnv(webhook = {}) {
-    return { pm2_env: { webhook } };
+function wrapEnv(name, envHook = {}) {
+    return { name, pm2_env: { env_hook: envHook } };
 }
