@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.0.4 - 2017-02-26
+### Add
+- Run of a simple command
+
 ## 1.0.3 - 2017-02-26
 ### Add
 - Index on root folder
