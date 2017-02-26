@@ -108,6 +108,14 @@ describe('Pm2Module', () => {
                 type: 'bitbucket'
             });
         });
+
+        it('returns the route if equal true', () => {
+            let obj = wrapEnv('lol', true);
+            let result = Pm2Module._parseProcess(obj);
+            expect(result).to.shallowDeepEqual({
+                name: 'lol'
+            });
+        });
     });
 
     describe('method _runCommand', () => {

@@ -3,6 +3,7 @@
  */
 
 let _ = require('lodash');
+let co = require('co');
 let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
 
@@ -78,15 +79,20 @@ class Pm2Module {
             return null;
         }
         let data = _.get(process, 'pm2_env.env_hook');
+        if (data === true) {
+            data = {};
+        }
 
         // Data to WebhookServer route
         let route = {
             name: process.name || 'unknown',
             type: data.type,
-            method() {
-
-
-            }
+            method: co.wrap(function* () {
+                yield {};
+                if (data) {
+                    return true;
+                }
+            })
         };
         route = cleanObj(route);
 
