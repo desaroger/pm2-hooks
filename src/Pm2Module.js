@@ -3,6 +3,8 @@
  */
 
 let _ = require('lodash');
+let co = require('co');
+let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
 
 class Pm2Module {
@@ -77,18 +79,49 @@ class Pm2Module {
             return null;
         }
         let data = _.get(process, 'pm2_env.env_hook');
+        if (data === true) {
+            data = {};
+        }
 
         // Data to WebhookServer route
         let route = {
             name: process.name || 'unknown',
             type: data.type,
-            method() {
-
-            }
+            method: co.wrap(function* () {
+                yield {};
+                if (data) {
+                    return true;
+                }
+            })
         };
         route = cleanObj(route);
 
         return route;
+    }
+
+    /**
+     * Runs a line command.
+     *
+     * @param {String} command The line to execute
+     * @param {Object} options The object options
+     * @returns {Promise<code>} The code of the error, or a void fulfilled promise
+     * @private
+     */
+    static _runCommand(command, options = {}) {
+        _.defaults(options, {
+            env: process.env,
+            shell: true
+        });
+        return new Promise((resolve, reject) => {
+            let child = childProcess.spawn('eval', [command], options);
+            child.on('close', (code) => {
+                if (!code) {
+                    resolve();
+                } else {
+                    reject(code);
+                }
+            });
+        });
     }
 }
 

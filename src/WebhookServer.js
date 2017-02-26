@@ -17,10 +17,6 @@ class WebhookServer {
             port: process.env.PORT || 9000,
             routes: {}
         });
-        console.log('');
-        console.log('ROUTES');
-        console.log('options routes', options.routes);
-        console.log('');
         this.options = options;
     }
 
