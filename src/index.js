@@ -15,7 +15,20 @@ pmx.initModule({}, (errPMX, conf) => {
         pm2.list((err, apps) => {
             let pm2Module = new Pm2Module(apps, {});
             pm2Module.start();
-            console.log('apps', apps); // eslint-disable-line no-console
+
+            console.log('');
+            console.log('');
+            console.log('///////////');
+            apps.forEach((app) => {
+                console.log('name', app.name);
+                console.log('cwd', app.pm2_env.pm2_cwd);
+                console.log('webhook', app.pm2_env.webhook);
+            });
+            console.log('');
+            console.log('//////////2');
+            apps.forEach((app) => {
+                console.log('app', app);
+            });
         });
     });
 });

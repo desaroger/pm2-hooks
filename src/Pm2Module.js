@@ -76,6 +76,7 @@ class Pm2Module {
         if (!processOptions) {
             return null;
         }
+        let processEnv = process.pm2_env;
         let data = _.get(process, 'pm2_env.webhook');
 
         // Data to WebhookServer route
