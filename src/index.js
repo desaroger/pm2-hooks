@@ -13,7 +13,7 @@ pmx.initModule({}, (errPMX, conf) => {
             return;
         }
         pm2.list((err, apps) => {
-            let pm2Module = new Pm2Module(apps, {});
+            let pm2Module = new Pm2Module(apps, conf);
             pm2Module.start();
 
             console.log('');
