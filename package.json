@@ -1,9 +1,10 @@
 {
   "name": "pm2-hooks",
-  "version": "1.0.5",
-  "description": "Webhook server for pm2",
-  "main": "index.js",
+  "version": "1.0.6",
+  "description": "Webhook server for pm2 compatible with any git repository",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "babel src --out-dir dist --copy-files",
     "lint": "eslint src test",
     "pretest": "npm run lint",
     "test": "NODE_ENV=test _mocha",
@@ -33,6 +34,9 @@
     "require-dir": "^0.3.1"
   },
   "devDependencies": {
+    "babel": "^6.23.0",
+    "babel-cli": "^6.23.0",
+    "babel-preset-es2015": "^6.22.0",
     "chai": "^3.5.0",
     "chai-as-promised": "^6.0.0",
     "chai-shallow-deep-equal": "^1.4.4",
