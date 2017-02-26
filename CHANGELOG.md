@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.0.3 - 2017-02-26
+### Add
+- Index on root folder
+
 ## 1.0.2 - 2017-02-25
 ### Add
 - Basics on Pm2Module
