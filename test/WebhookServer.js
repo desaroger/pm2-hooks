@@ -2,27 +2,10 @@
  * Created by desaroger on 23/02/17.
  */
 
-let _ = require('lodash');
 let sinon = require('sinon');
-let urlJoin = require('url-join');
-let r = require('request-promise');
-let { expect, c } = require('./assets');
+let { expect, c, callApi } = require('./assets');
 let WebhookServer = require('../src/WebhookServer');
 
-let callToApi = (path, payload, options = {}) => {
-    path = urlJoin('http://localhost:1234', path);
-    _.defaults(options, {
-        method: 'POST',
-        uri: path
-    });
-    return r(options)
-        .then((body) => {
-            if (typeof body === 'string') {
-                body = JSON.parse(body);
-            }
-            return body;
-        });
-};
 describe('webhookServer', () => {
     it('is a function', () => {
         expect(WebhookServer).to.be.a('function');
@@ -65,6 +48,13 @@ describe('webhookServer', () => {
         it('can be started', () => {
             return expect(whs.start()).to.eventually.be.fulfilled;
         });
+
+        it('shows as running', () => {
+            return whs.start()
+                .then(() => {
+                    expect(whs.isRunning()).to.equal(true);
+                });
+        });
     });
 
     describe('call handler', (whs, calls = 0, method) => {
@@ -105,8 +95,8 @@ describe('webhookServer', () => {
         it('the server is actually listening', c(function* () {
             let spy = sinon.spy(whs, '_handleCall');
             yield whs.start();
-            yield callToApi();
-            yield callToApi('/asd');
+            yield callApi();
+            yield callApi('/asd');
             expect(spy.calledTwice).to.equal(true);
             spy.restore();
         }));
@@ -114,7 +104,7 @@ describe('webhookServer', () => {
         it('returns success if the route works', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
-            let body = yield callToApi('/working');
+            let body = yield callApi('/working');
             expect(body).to.be.deep.equal({
                 status: 'success',
                 message: 'Route "working" was found',
@@ -126,7 +116,7 @@ describe('webhookServer', () => {
         it('works even though there is no type', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
-            let body = yield callToApi('/withoutType');
+            let body = yield callApi('/withoutType');
             expect(body).to.be.deep.equal({
                 status: 'success',
                 message: 'Route "withoutType" was found',
@@ -138,7 +128,7 @@ describe('webhookServer', () => {
         it('returns a warning if called a non-existent route', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
-            let body = yield callToApi('/lol');
+            let body = yield callApi('/lol');
             expect(body).to.be.deep.equal({
                 status: 'warning',
                 message: 'Route "lol" not found',
@@ -150,7 +140,7 @@ describe('webhookServer', () => {
         it('returns an error if the method triggers an error', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
-            let body = yield callToApi('/throwsError');
+            let body = yield callApi('/throwsError');
             expect(body).to.be.deep.equal({
                 status: 'error',
                 message: 'Route method error: Test error',
@@ -162,7 +152,7 @@ describe('webhookServer', () => {
         it('returns an error if the method triggers a value', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
-            let body = yield callToApi('/throwsString');
+            let body = yield callApi('/throwsString');
             expect(body).to.be.deep.equal({
                 status: 'error',
                 message: 'Route method error: Test throw string',
@@ -181,7 +171,7 @@ describe('webhookServer', () => {
                     branch: 'master'
                 });
             };
-            let body = yield callToApi('/checkPayload',
+            let body = yield callApi('/checkPayload',
                 {
                     name: 'test',
                     action: 'push',

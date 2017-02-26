@@ -84,10 +84,15 @@ class Pm2Module {
         }
 
         // Data to WebhookServer route
+        let self = this;
         let route = {
             name: process.name || 'unknown',
             type: data.type,
             method: co.wrap(function* () {
+                if (data.command) {
+                    yield self._runCommand(data.command);
+                }
+               // console.log('asd', Object.keys(data));
                 yield {};
                 if (data) {
                     return true;

@@ -6,7 +6,7 @@ let _ = require('lodash');
 let Pm2Module = require('../src/Pm2Module');
 let WebhookServer = require('../src/WebhookServer');
 let mockApps = require('./mocks/apps');
-let { expect } = require('./assets');
+let { expect, c, callApi, mockSpawn } = require('./assets');
 
 describe('Pm2Module', () => {
     it('is a function', () => {
@@ -49,6 +49,68 @@ describe('Pm2Module', () => {
             expect(routes.d).to.be.an('object');
             expect(routes.d.type).to.not.be.ok;
         });
+    });
+
+    describe('[run commands]', (pm2Module) => {
+        before(() => {
+            let apps = [
+                wrapEnv('a', {
+                    type: 'github',
+                    command: 'echo hi'
+                }),
+                wrapEnv('b', {
+                    type: 'gitlab',
+                    command: 'echo-nope hi'
+                })
+            ];
+            pm2Module = new Pm2Module(apps, {
+                port: 1234
+            });
+            return pm2Module.start();
+        });
+        after(() => pm2Module.stop());
+        afterEach(() => mockSpawn.restore());
+
+        it('is running', () => {
+            expect(pm2Module.webhookServer.isRunning()).to.equal(true);
+        });
+
+        it('returns the warning if not found', c(function* () {
+            let result = yield callApi('/nope');
+            expect(result).to.shallowDeepEqual({
+                status: 'warning',
+                message: 'Route "nope" not found',
+                code: 1
+            });
+        }));
+
+        it('runs the command', c(function* () {
+            mockSpawn.start((command, options) => {
+                expect(command).to.equal('echo hi');
+            });
+            let result = yield callApi('/a');
+            expect(result).to.shallowDeepEqual({
+                status: 'success',
+                message: 'Route "a" was found',
+                code: 0
+            });
+        }));
+
+        it.skip('shows error if command error', c(function* () {
+            mockSpawn.start(() => {
+                return function (cb) {
+                    this.emit('close', 'asd');
+                    this.stdout.write('output data my library expects');
+                    return cb(2); // and exit 0
+                };
+            });
+            let result = yield callApi('/a');
+            expect(result).to.shallowDeepEqual({
+                status: 'success',
+                message: 'Route "a" was found',
+                code: 0
+            });
+        }));
     });
 
     describe('method _parseProcesses', () => {

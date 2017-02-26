@@ -133,7 +133,7 @@ class WebhookServer {
      * @returns {boolean} True if the server is running
      */
     isRunning() {
-        return !!(this.server && this.server.running);
+        return !!(this.server && this.server.address());
     }
 
 }
