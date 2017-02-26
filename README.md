@@ -139,7 +139,7 @@ Licensed under the [MIT License](/LICENSE).
 [npm-badge]: https://img.shields.io/npm/v/pm2-hooks.svg
 [npm-url]: https://www.npmjs.com/package/pm2-hooks
 
-[fury-badge]: https://badge.fury.io/gh/desaroger%2Fpm2-hooks.svg
+[fury-badge]: https://badge.fury.io/js/pm2-hooks.svg
 [fury-url]: https://www.npmjs.com/package/pm2-hooks
 
 [travis-badge]: https://travis-ci.org/desaroger/pm2-hooks.svg
