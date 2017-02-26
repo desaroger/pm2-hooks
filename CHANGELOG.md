@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.0.5 - 2017-02-26
+### Add
+- Log service
+
 ## 1.0.4 - 2017-02-26
 ### Add
 - Run of a simple command
