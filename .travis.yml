@@ -1,0 +1,15 @@
+language: node_js
+node_js:
+  - "7"
+install:
+  - npm install
+  - npm run lint
+  - npm run test
+  - npm run build
+after_success:
+  - npm run test:cover
+  - npm install codeclimate-test-reporter
+  - ./node_modules/codeclimate-test-reporter/bin/codeclimate.js < coverage/lcov.info
+addons:
+    code_climate:
+        repo_token: 0af2f54eeda3b061cef721d9235e333f47b93f78d1b4112da46ccc0eb52f5e52
