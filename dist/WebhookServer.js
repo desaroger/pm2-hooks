@@ -13,7 +13,9 @@ var http = require('http');
 var bodyParser = require('body-parser');
 
 var _require = require('./utils'),
-    log = _require.log;
+    log = _require.log,
+    c = _require.c,
+    isPromise = _require.isPromise;
 
 var WebhookServer = function () {
 
@@ -88,58 +90,104 @@ var WebhookServer = function () {
     }, {
         key: '_handleCall',
         value: function _handleCall(req, res) {
-            var _this3 = this;
-
+            var self = this;
             bodyParser.urlencoded({
                 extended: true
-            })(req, res, function () {
-                // Mock
-                var routeName = _this3._getRouteName(req);
-                if (!routeName) {
-                    log('No route found on url', 1);
-                    res.end(JSON.stringify({
-                        status: 'warning',
-                        message: 'No route found on url',
-                        code: 1
-                    }));
-                    return;
-                }
-                var route = _this3.options.routes[routeName];
-                if (!route) {
-                    log('Warning: Route "' + routeName + '" not found', 1);
-                    res.end(JSON.stringify({
-                        status: 'warning',
-                        message: 'Route "' + routeName + '" not found',
-                        code: 1
-                    }));
-                    return;
-                }
+            })(req, res, c(regeneratorRuntime.mark(function _callee() {
+                var routeName, route, payload, result, message;
+                return regeneratorRuntime.wrap(function _callee$(_context) {
+                    while (1) {
+                        switch (_context.prev = _context.next) {
+                            case 0:
+                                // Mock
+                                routeName = self._getRouteName(req);
 
-                // Prepare the execution of the method
-                var payload = _this3._parsePayload(route.type, req.body);
-                try {
-                    route.method(payload);
-                } catch (e) {
-                    var message = e;
-                    if (message.message) {
-                        message = message.message;
+                                if (routeName) {
+                                    _context.next = 5;
+                                    break;
+                                }
+
+                                log('No route found on url', 1);
+                                res.end(JSON.stringify({
+                                    status: 'warning',
+                                    message: 'No route found on url',
+                                    code: 1
+                                }));
+                                return _context.abrupt('return');
+
+                            case 5:
+                                route = self.options.routes[routeName];
+
+                                if (route) {
+                                    _context.next = 10;
+                                    break;
+                                }
+
+                                log('Warning: Route "' + routeName + '" not found', 1);
+                                res.end(JSON.stringify({
+                                    status: 'warning',
+                                    message: 'Route "' + routeName + '" not found',
+                                    code: 1
+                                }));
+                                return _context.abrupt('return');
+
+                            case 10:
+
+                                // Prepare the execution of the method
+                                payload = self._parsePayload(route.type, req.body);
+                                result = void 0;
+                                _context.prev = 12;
+
+                                result = route.method(payload);
+
+                                if (!isPromise(result)) {
+                                    _context.next = 18;
+                                    break;
+                                }
+
+                                _context.next = 17;
+                                return result;
+
+                            case 17:
+                                result = _context.sent;
+
+                            case 18:
+                                _context.next = 27;
+                                break;
+
+                            case 20:
+                                _context.prev = 20;
+                                _context.t0 = _context['catch'](12);
+                                message = _context.t0;
+
+                                if (message.message) {
+                                    message = message.message;
+                                }
+                                log('Error: Route "' + routeName + '" method error: ' + message, 2);
+                                res.end(JSON.stringify({
+                                    status: 'error',
+                                    message: 'Route "' + routeName + '" method error: ' + message,
+                                    code: 2
+                                }));
+                                return _context.abrupt('return');
+
+                            case 27:
+
+                                log('Success: Route "' + routeName + '" was found', 0);
+                                res.end(JSON.stringify({
+                                    status: 'success',
+                                    message: 'Route "' + routeName + '" was found',
+                                    code: 0,
+                                    result: result
+                                }));
+
+                            case 29:
+                            case 'end':
+                                return _context.stop();
+                        }
                     }
-                    log('Error: Route "' + routeName + '" method error: ' + message, 2);
-                    res.end(JSON.stringify({
-                        status: 'error',
-                        message: 'Route "' + routeName + '" method error: ' + message,
-                        code: 2
-                    }));
-                    return;
-                }
-
-                log('Success: Route "' + routeName + '" was found', 0);
-                res.end(JSON.stringify({
-                    status: 'success',
-                    message: 'Route "' + routeName + '" was found',
-                    code: 0
-                }));
-            });
+                }, _callee, this, [[12, 20]]);
+            })));
         }
 
         /**

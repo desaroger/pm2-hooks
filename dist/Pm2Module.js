@@ -103,23 +103,24 @@ var Pm2Module = function () {
 
     }, {
         key: '_parseProcess',
-        value: function _parseProcess(process) {
+        value: function _parseProcess(app) {
             // Check data
-            if (!process) {
+            if (!app) {
                 return null;
             }
-            var processOptions = _.get(process, 'pm2_env.env_hook');
+            var processOptions = _.get(app, 'pm2_env.env_hook');
             if (!processOptions) {
                 return null;
             }
-            var data = _.get(process, 'pm2_env.env_hook');
+            var data = _.get(app, 'pm2_env.env_hook');
             if (data === true) {
                 data = {};
             }
 
             // Data to WebhookServer route
             var self = this;
-            var name = process.name || 'unknown';
+            var name = app.name || 'unknown';
+            var commandOptions = Object.assign({}, { cwd: data.cwd || app.pm_cwd }, data.commandOptions || {});
             var route = {
                 name: name,
                 type: data.type,
@@ -138,7 +139,7 @@ var Pm2Module = function () {
 
                                     log('Running command: ' + data.command);
                                     _context.next = 5;
-                                    return self._runCommand(data.command);
+                                    return self._runCommand(data.command, commandOptions);
 
                                 case 5:
                                     _context.next = 12;
