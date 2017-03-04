@@ -21,23 +21,25 @@ Features ([changelog](/CHANGELOG.md)):
 Wanted features, to be done during Mach/2017:
 
 - Check payload for secret, check common headers on main git repositories (github, bitbucket, gitlab, etc) to know if is a valid call
-- Auto-restart pm2 app after a successful command run (configurable)
 
 Possible features, as I need to think about it:
 
+- Auto-restart pm2 app after a successful command run
 - Make an automatic `git pull` on the folder, and make a `prePull` and `postPull` available commands (same approach as [vmarchaud/pm2-githook](https://github.com/vmarchaud/pm2-githook))
 
 # Install
 
-```
+To install it simply run:
+
+```bash
 $ pm2 install pm2-hooks
 ```
 
-Warning: This library currently (2017 feb 26) is in absolutely ALPHA state. This means some things:
+Warning: This library currently (2017 feb 26) is in ALPHA state. This means some things:
 
-- You can help me making a comment/issue
+- You can help me a lot making a comment/issue
 - I don't recommend you to make a PR for now, as I am actively working on this project
-- Probably the `pm2 install pm2-hooks` is not updated, because is based on **npm** and it takes some days to update to last version. If you want to be sure you have the last version you can install it directly from the repository with `pm2 install desaroger/pm2-hooks`
+- I will try to publish the last version to npm so you can install it with only `pm2 install pm2-hooks`. If for some reason the version on npm is outdated you always will be capable of run `pm2 install desaroger/pm2-hooks` to be sure to install the last version directly from the repository.
 
 
 # Usage
@@ -73,7 +75,7 @@ Where **api-1** has hook disabled and **api-2** is enabled and when the hook is 
 
 ### Available options:
 
-- **command** *{string}* The line you want to execute (will be executed with NodeJS `spawn`. (optional, but if not set this is not going to do nothing ¯\_(ツ)_/¯)
+- **command** *{string}* The line you want to execute. Will be executed with NodeJS `spawn`. (optional, but if not set this is not going to do nothing ¯\\_(ツ)_/¯)
 - **cwd** *{string}* The cwd to use when running the command. If not set, the one used on your ecosystem app configuration will be used (if set).
 - **commandOptions** *{object}* The object that we will pass to the NodeJS `spawn`. Defaults to a blank object, and later we add the *cwd*.
 - **type** *{string}* [not implemented yet] The git server you are going to use [github, gitlab, bitbucket, etc].
@@ -139,7 +141,7 @@ These are some projects I found similar to mine. Please let me know if you know 
 
 # Copyright and license
 
-Copyright 2016 Roger Fos Soler
+Copyright 2017 Roger Fos Soler
 
 Licensed under the [MIT License](/LICENSE).
 
