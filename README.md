@@ -11,15 +11,15 @@ PM2 module to listen webhooks from github, bitbucket, gitlab, jenkins and dronec
 
 This project is highly inspired by [vmarchaud/pm2-githook](https://github.com/vmarchaud/pm2-githook).
 
-Features:
+Features ([changelog](/CHANGELOG.md)):
 
 - Runs an http server listening for webhooks
 - Works on any repository system, as for now it does nothing with the payload received. In the near future I will check the branch or the action, the secret, etc.
 - Only runs the command you set
+- Run the command in the cwd defined for the app
 
 Wanted features, to be done during Mach/2017:
 
-- Run the command in the cwd defined for the app
 - Check payload for secret, check common headers on main git repositories (github, bitbucket, gitlab, etc) to know if is a valid call
 - Auto-restart pm2 app after a successful command run (configurable)
 
@@ -61,7 +61,8 @@ Example of an ecosystem file:
 			name: 'api-2',
 			script: 'server.js',
 			env_hooks: {
-				command: 'git pull && npm i && npm test && pm2 restart api-2'
+				command: 'git pull && npm i && npm test && pm2 restart api-2',
+				cwd: '/home/desaroger'
 			}
 		}
 	]
@@ -69,6 +70,13 @@ Example of an ecosystem file:
 ```
 
 Where **api-1** has hook disabled and **api-2** is enabled and when the hook is called, the command is executed.
+
+### Available options:
+
+- **command** *{string}* The line you want to execute (will be executed with NodeJS `spawn`. (optional, but if not set this is not going to do nothing ¯\_(ツ)_/¯)
+- **cwd** *{string}* The cwd to use when running the command. If not set, the one used on your ecosystem app configuration will be used (if set).
+- **commandOptions** *{object}* The object that we will pass to the NodeJS `spawn`. Defaults to a blank object, and later we add the *cwd*.
+- **type** *{string}* [not implemented yet] The git server you are going to use [github, gitlab, bitbucket, etc].
 
 ## Step 2: Install
 

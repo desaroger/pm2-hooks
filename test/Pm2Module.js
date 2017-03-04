@@ -24,10 +24,10 @@ describe('Pm2Module', () => {
     describe('instance', (pm2Module) => {
         before(() => {
             let apps = [
-                wrapEnv('a', { type: 'github' }),
-                wrapEnv('b', { type: 'bitbucket' }),
-                wrapEnv('c', { type: 'gitlab' }),
-                wrapEnv('d', { })
+                wrapEnv({ name: 'a' }, { type: 'github' }),
+                wrapEnv({ name: 'b' }, { type: 'bitbucket' }),
+                wrapEnv({ name: 'c' }, { type: 'gitlab' }),
+                wrapEnv({ name: 'd' }, { })
             ];
             pm2Module = new Pm2Module(apps);
         });
@@ -58,13 +58,27 @@ describe('Pm2Module', () => {
     describe('[run commands]', (pm2Module) => {
         before(() => {
             let apps = [
-                wrapEnv('a', {
+                wrapEnv({
+                    name: 'a'
+                }, {
                     type: 'github',
-                    command: 'echo hi'
+                    command: 'echo hi',
+                    cwd: '/home/desaroger'
                 }),
-                wrapEnv('b', {
+                wrapEnv({
+                    name: 'b',
+                    pm_cwd: '/home/lol'
+                }, {
                     type: 'gitlab',
                     command: 'echo-nope hi'
+                }),
+                wrapEnv({
+                    name: 'c',
+                    pm_cwd: '/home/nope'
+                }, {
+                    type: 'gitlab',
+                    command: 'echo yeah',
+                    cwd: '/home/yeah'
                 })
             ];
             pm2Module = new Pm2Module(apps, {
@@ -85,7 +99,7 @@ describe('Pm2Module', () => {
                 expect(status).to.equal(1);
             });
             let result = yield callApi('/nope');
-            expect(result).to.shallowDeepEqual({
+            expect(result).to.deep.equal({
                 status: 'warning',
                 message: 'Route "nope" not found',
                 code: 1
@@ -106,7 +120,7 @@ describe('Pm2Module', () => {
                 expect(status).to.equal(0);
             });
             let result = yield callApi('/a');
-            expect(result).to.shallowDeepEqual({
+            expect(result).to.deep.equal({
                 status: 'success',
                 message: 'Route "a" was found',
                 code: 0
@@ -114,19 +128,60 @@ describe('Pm2Module', () => {
             expect(log.count).to.equal(2);
         }));
 
-        it.skip('shows error if command error', c(function* () {
-            mockSpawn.start(() => {
-                return function (cb) {
-                    this.emit('close', 'asd');
-                    this.stdout.write('output data my library expects');
-                    return cb(2); // and exit 0
-                };
+        it('runs the command in the CWD if available on config', c(function* () {
+            mockSpawn.start((command, options) => {
+                expect(options).to.be.an('object');
+                expect(options.cwd).to.equal('/home/desaroger');
+                expect(command).to.equal('echo hi');
             });
-            let result = yield callApi('/a');
-            expect(result).to.shallowDeepEqual({
+            let result = yield expect(callApi('/a')).to.be.fulfilled;
+            expect(result).to.deep.equal({
                 status: 'success',
                 message: 'Route "a" was found',
                 code: 0
+            });
+        }));
+
+        it('runs the command in the CWD with the app cwd if no present con config', c(function* () {
+            mockSpawn.start((command, options) => {
+                expect(options).to.be.an('object');
+                expect(options.cwd).to.equal('/home/lol');
+                expect(command).to.equal('echo-nope hi');
+            });
+            let result = yield expect(callApi('/b')).to.be.fulfilled;
+            expect(result).to.deep.equal({
+                status: 'success',
+                message: 'Route "b" was found',
+                code: 0
+            });
+        }));
+
+        it('runs the command in the CWD with priority to the config', c(function* () {
+            mockSpawn.start((command, options) => {
+                expect(options).to.be.an('object');
+                expect(options.cwd).to.equal('/home/yeah');
+                expect(command).to.equal('echo yeah');
+            });
+            let result = yield expect(callApi('/c')).to.be.fulfilled;
+            expect(result).to.deep.equal({
+                status: 'success',
+                message: 'Route "c" was found',
+                code: 0
+            });
+        }));
+
+        it('shows error if command error', c(function* () {
+            mockSpawn.start(() => {
+                return function (cb) {
+                    this.emit('close', 'asd');
+                    return cb(2);
+                };
+            });
+            let result = yield callApi('/a');
+            expect(result).to.deep.equal({
+                status: 'error',
+                message: 'Route "a" method error: asd',
+                code: 2
             });
         }));
     });
@@ -181,7 +236,7 @@ describe('Pm2Module', () => {
         });
 
         it('returns the route if valid object', () => {
-            let obj = wrapEnv('lol', { type: 'bitbucket' });
+            let obj = wrapEnv({ name: 'lol' }, { type: 'bitbucket' });
             let result = Pm2Module._parseProcess(obj);
             expect(result).to.shallowDeepEqual({
                 name: 'lol',
@@ -190,7 +245,7 @@ describe('Pm2Module', () => {
         });
 
         it('returns the route if equal true', () => {
-            let obj = wrapEnv('lol', true);
+            let obj = wrapEnv({ name: 'lol' }, true);
             let result = Pm2Module._parseProcess(obj);
             expect(result).to.shallowDeepEqual({
                 name: 'lol'
@@ -221,7 +276,7 @@ describe('Pm2Module', () => {
         });
 
         it('throws an error if fails', () => {
-            return Pm2Module._runCommand('ecssssho hi')
+            return Pm2Module._runCommand('765-this-need-to-not-exists-231 hi')
                 .catch((err) => {
                     expect(err).to.be.ok;
                 });
@@ -229,6 +284,24 @@ describe('Pm2Module', () => {
     });
 });
 
-function wrapEnv(name, envHook = {}) {
-    return { name, pm2_env: { env_hook: envHook } };
+/**
+ * Creates an object with the same structure as the PM2 process
+ * Example structure:
+ * {
+ *      name: 'api',
+ *      pm2_env: {
+ *          env: {},
+ *          env_hooks: {
+ *              command: 'echo hi'
+ *          }
+ *      }
+ * }
+ *
+ * @param {object} appData The root object
+ * @param {object} envHook The object inside 'pm2_env.env_hooks' path
+ * @returns {object} The built object
+ */
+function wrapEnv(appData = {}, envHook = {}) {
+    appData.pm2_env = { env_hook: envHook };
+    return appData;
 }
