@@ -174,7 +174,7 @@ describe('Pm2Module', () => {
             mockSpawn.start(() => {
                 return function (cb) {
                     this.emit('close', 'asd');
-                    return cb(2); // and exit 0
+                    return cb(2);
                 };
             });
             let result = yield callApi('/a');
