@@ -5,7 +5,7 @@
 const _ = require('lodash');
 const http = require('http');
 const bodyParser = require('body-parser');
-const { log } = require('./utils');
+const { log, c, isPromise } = require('./utils');
 
 class WebhookServer {
 
@@ -62,11 +62,12 @@ class WebhookServer {
      * @private
      */
     _handleCall(req, res) {
+        let self = this;
         bodyParser.urlencoded({
             extended: true
-        })(req, res, () => {
+        })(req, res, c(function* () {
             // Mock
-            let routeName = this._getRouteName(req);
+            let routeName = self._getRouteName(req);
             if (!routeName) {
                 log('No route found on url', 1);
                 res.end(JSON.stringify({
@@ -76,7 +77,7 @@ class WebhookServer {
                 }));
                 return;
             }
-            let route = this.options.routes[routeName];
+            let route = self.options.routes[routeName];
             if (!route) {
                 log(`Warning: Route "${routeName}" not found`, 1);
                 res.end(JSON.stringify({
@@ -88,9 +89,13 @@ class WebhookServer {
             }
 
             // Prepare the execution of the method
-            let payload = this._parsePayload(route.type, req.body);
+            let payload = self._parsePayload(route.type, req.body);
+            let result;
             try {
-                route.method(payload);
+                result = route.method(payload);
+                if (isPromise(result)) {
+                    result = yield result;
+                }
             } catch (e) {
                 let message = e;
                 if (message.message) {
@@ -109,9 +114,10 @@ class WebhookServer {
             res.end(JSON.stringify({
                 status: 'success',
                 message: `Route "${routeName}" was found`,
-                code: 0
+                code: 0,
+                result
             }));
-        });
+        }));
     }
 
     /**
