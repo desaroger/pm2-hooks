@@ -81,23 +81,24 @@ class Pm2Module {
      * @returns {object|null} The route object, or null if invalid
      * @private
      */
-    static _parseProcess(process) {
+    static _parseProcess(app) {
         // Check data
-        if (!process) {
+        if (!app) {
             return null;
         }
-        let processOptions = _.get(process, 'pm2_env.env_hook');
+        let processOptions = _.get(app, 'pm2_env.env_hook');
         if (!processOptions) {
             return null;
         }
-        let data = _.get(process, 'pm2_env.env_hook');
+        let data = _.get(app, 'pm2_env.env_hook');
         if (data === true) {
             data = {};
         }
 
         // Data to WebhookServer route
         let self = this;
-        let name = process.name || 'unknown';
+        let name = app.name || 'unknown';
+        let commandOptions = Object.assign({}, { cwd: data.cwd || app.pm_cwd }, data.commandOptions || {});
         let route = {
             name,
             type: data.type,
@@ -105,7 +106,7 @@ class Pm2Module {
                 try {
                     if (data.command) {
                         log(`Running command: ${data.command}`);
-                        yield self._runCommand(data.command);
+                        yield self._runCommand(data.command, commandOptions);
                     }
                 } catch (e) {
                     let err = e.message || e;
