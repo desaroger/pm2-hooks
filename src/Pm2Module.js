@@ -77,7 +77,7 @@ class Pm2Module {
      * - input: { pm2_env: { env_hook: { type: 'bitbucket' } } }
      * - output: { name: 'unknown', type: 'bitbucket' }
      *
-     * @param process The Pm2 process
+     * @param app The Pm2 process
      * @returns {object|null} The route object, or null if invalid
      * @private
      */
@@ -92,6 +92,7 @@ class Pm2Module {
             return null;
         }
         console.log('options', processOptions);
+        console.log('');
         let data = _.get(app, 'pm2_env.env_hook');
         if (data === true) {
             data = {};
