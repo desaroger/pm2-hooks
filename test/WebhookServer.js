@@ -7,6 +7,10 @@ let { expect, c, callApi, log } = require('./assets');
 let WebhookServer = require('../src/WebhookServer');
 
 describe('webhookServer', () => {
+    beforeEach(() => {
+        log.restore();
+    });
+
     it('is a function', () => {
         expect(WebhookServer).to.be.a('function');
     });
@@ -63,7 +67,6 @@ describe('webhookServer', () => {
                 port: 1234,
                 routes: {
                     working: {
-                        type: 'github',
                         method() { calls++; }
                     },
                     withoutType: {
@@ -80,6 +83,7 @@ describe('webhookServer', () => {
                         }
                     },
                     checkPayload: {
+                        type: 'test',
                         method(...args) {
                             return method.call(this, ...args);
                         }
@@ -90,7 +94,6 @@ describe('webhookServer', () => {
         afterEach(() => {
             whs.stop();
             calls = 0;
-            log.restore();
         });
 
         it('the server is actually listening', c(function* () {
@@ -113,6 +116,7 @@ describe('webhookServer', () => {
             expect(spy.calledTwice).to.equal(true);
             spy.restore();
             expect(log.count).to.equal(2);
+            log.checkMocks();
         }));
 
         it('returns success if the route works', c(function* () {
@@ -130,6 +134,7 @@ describe('webhookServer', () => {
             });
             expect(calls).to.equal(1);
             expect(log.count).to.equal(1);
+            log.checkMocks();
         }));
 
         it('works even though there is no type', c(function* () {
@@ -147,6 +152,7 @@ describe('webhookServer', () => {
             });
             expect(calls).to.equal(1);
             expect(log.count).to.equal(1);
+            log.checkMocks();
         }));
 
         it('returns a warning if called a non-existent route', c(function* () {
@@ -163,6 +169,7 @@ describe('webhookServer', () => {
                 code: 1
             });
             expect(calls).to.equal(0);
+            log.checkMocks();
         }));
 
         it('returns an error if the method triggers an error', c(function* () {
@@ -179,6 +186,7 @@ describe('webhookServer', () => {
                 code: 2
             });
             expect(calls).to.equal(0);
+            log.checkMocks();
         }));
 
         it('returns an error if the method triggers a value', c(function* () {
@@ -195,6 +203,7 @@ describe('webhookServer', () => {
                 code: 2
             });
             expect(calls).to.equal(0);
+            log.checkMocks();
         }));
 
         it('pass the payload to the method', c(function* () {
@@ -213,7 +222,7 @@ describe('webhookServer', () => {
             });
             let body = yield callApi('/checkPayload',
                 {
-                    name: 'test',
+                    name: 'pm2-hooks',
                     action: 'push',
                     branch: 'master'
                 });
@@ -223,18 +232,174 @@ describe('webhookServer', () => {
                 code: 0
             });
             expect(calls).to.equal(0);
+            log.checkMocks();
         }));
     });
 
-    describe('_getRouteName', (whs, spy, mockReq) => {
+    describe('_parseRequest', () => {
+        let whs, spy, mockReq;
         before(() => {
             whs = new WebhookServer({
                 port: 1234,
                 routes: {
-                    demo() {}
+                    demo: {
+                        method() {}
+                    }
                 }
             });
-            spy = sinon.spy(whs.options.routes, 'demo');
+            spy = sinon.spy(whs.options.routes.demo, 'method');
+            mockReq = (url) => {
+                return {
+                    url
+                };
+            };
+        });
+
+        it('exists', () => {
+            expect(whs._parseRequest).to.be.a('function');
+        });
+
+        it('logs on error', () => {
+            let route = {
+                type: 'github'
+            };
+            let req = {
+                headers: {}
+            };
+            log.mock((msg, status) => {
+                expect(msg).to.match(/Error for route type github: Invalid headers/i);
+                expect(status).to.equal(2);
+            });
+            expect(() => whs._parseRequest(req, route))
+                .to.throw(/Error for route type github: Invalid headers/);
+            expect(log.count).to.equal(1);
+            log.checkMocks();
+        });
+
+        describe('[github]', () => {
+            it('checks the headers', () => {
+                let route = {
+                    type: 'github'
+                };
+                let req = {
+                    headers: {}
+                };
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type github: Invalid headers/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type github: Invalid headers/);
+                log.checkMocks();
+            });
+
+            it('doesn\'t throw if headers found', () => {
+                let route = {};
+                let req = {
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-hub-signature': 'sha1=asdadsa'
+                    }
+                };
+                expect(() => whs._parseRequest(req, route)).to.not.throw();
+            });
+
+            it('checks if secret fails', () => {
+                let route = {
+                    secret: 'lol'
+                };
+                let req = {
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-hub-signature': 'sha1=nopenopenope'
+                    },
+                    body: 'superbody'
+                };
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type github: Invalid secret/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type github: Invalid secret/);
+                log.checkMocks();
+            });
+
+            it('checks if secret works', () => {
+                let route = {
+                    secret: 'lol'
+                };
+                let req = {
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-hub-signature': 'sha1=241946ca6d19a74a9e52ea4b6a59ceb9c5cf309f'
+                    },
+                    body: '{"lol":"yeah"}'
+                };
+                expect(() => whs._parseRequest(req, route)).to.not.throw();
+            });
+
+            it('returns the action', () => {
+                let route = {};
+                let req = {
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-hub-signature': 'sha1=241949ceb9c5cf309f'
+                    },
+                    body: '{"lol":"yeah"}'
+                };
+                let result = whs._parseRequest(req, route);
+                expect(result.action).to.equal('push');
+            });
+
+            it('returns the repository name', () => {
+                let route = {};
+                let req = {
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-hub-signature': 'sha1=241949ceb9c5cf309f'
+                    },
+                    body: JSON.stringify({
+                        repository: {
+                            name: 'pm2-hooks'
+                        }
+                    })
+                };
+                let result = whs._parseRequest(req, route);
+                expect(result.name).to.equal('pm2-hooks');
+            });
+
+            it('returns the branch name', () => {
+                let route = {};
+                let req = {
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-hub-signature': 'sha1=241949ceb9c5cf309f'
+                    },
+                    body: JSON.stringify({
+                        ref: 'refs/heads/develop',
+                        repository: {
+                            name: 'pm2-hooks'
+                        }
+                    })
+                };
+                let result = whs._parseRequest(req, route);
+                expect(result.branch).to.equal('develop');
+            });
+        });
+    });
+
+    describe('_getRouteName', () => {
+        let whs, spy, mockReq;
+        before(() => {
+            whs = new WebhookServer({
+                port: 1234,
+                routes: {
+                    demo: {
+                        method() {}
+                    }
+                }
+            });
+            spy = sinon.spy(whs.options.routes.demo, 'method');
             mockReq = (url) => {
                 return {
                     url
@@ -267,169 +432,169 @@ describe('webhookServer', () => {
     });
 });
 
-// function mockGithub() {
-//     return {
-//         ref: "refs/heads/changes",
-//         before: "9049f1265b7d61be4a8904a9a27120d2064dab3b",
-//         after: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-//         created: false,
-//         deleted: false,
-//         forced: false,
-//         base_ref: null,
-//         compare: "https://github.com/baxterthehacker/public-repo/compare/9049f1265b7d...0d1a26e67d8f",
-//         commits: [
-//             {
-//                 id: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-//                 tree_id: "f9d2a07e9488b91af2641b26b9407fe22a451433",
-//                 distinct: true,
-//                 message: "Update README.md",
-//                 timestamp: "2015-05-05T19:40:15-04:00",
-//                 url: "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-//                 author: {
-//                     name: "baxterthehacker",
-//                     email: "baxterthehacker@users.noreply.github.com",
-//                     username: "baxterthehacker"
-//                 },
-//                 committer: {
-//                     name: "baxterthehacker",
-//                     email: "baxterthehacker@users.noreply.github.com",
-//                     username: "baxterthehacker"
-//                 },
-//                 added: [
-//
-//                 ],
-//                 removed: [
-//
-//                 ],
-//                 modified: [
-//                     "README.md"
-//                 ]
-//             }
-//         ],
-//         head_commit: {
-//             id: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-//             tree_id: "f9d2a07e9488b91af2641b26b9407fe22a451433",
-//             distinct: true,
-//             message: "Update README.md",
-//             timestamp: "2015-05-05T19:40:15-04:00",
-//             url: "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-//             author: {
-//                 name: "baxterthehacker",
-//                 email: "baxterthehacker@users.noreply.github.com",
-//                 username: "baxterthehacker"
-//             },
-//             committer: {
-//                 name: "baxterthehacker",
-//                 email: "baxterthehacker@users.noreply.github.com",
-//                 username: "baxterthehacker"
-//             },
-//             added: [
-//
-//             ],
-//             removed: [
-//
-//             ],
-//             modified: [
-//                 "README.md"
-//             ]
-//         },
-//         repository: {
-//             id: 35129377,
-//             name: "public-repo",
-//             full_name: "baxterthehacker/public-repo",
-//             owner: {
-//                 name: "baxterthehacker",
-//                 email: "baxterthehacker@users.noreply.github.com"
-//             },
-//             private: false,
-//             html_url: "https://github.com/baxterthehacker/public-repo",
-//             description: "",
-//             fork: false,
-//             url: "https://github.com/baxterthehacker/public-repo",
-//             forks_url: "https://api.github.com/repos/baxterthehacker/public-repo/forks",
-//             keys_url: "https://api.github.com/repos/baxterthehacker/public-repo/keys{/key_id}",
-//             collaborators_url: "https://api.github.com/repos/baxterthehacker/public-repo/collaborators{/collaborator}",
-//             teams_url: "https://api.github.com/repos/baxterthehacker/public-repo/teams",
-//             hooks_url: "https://api.github.com/repos/baxterthehacker/public-repo/hooks",
-//             issue_events_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues/events{/number}",
-//             events_url: "https://api.github.com/repos/baxterthehacker/public-repo/events",
-//             assignees_url: "https://api.github.com/repos/baxterthehacker/public-repo/assignees{/user}",
-//             branches_url: "https://api.github.com/repos/baxterthehacker/public-repo/branches{/branch}",
-//             tags_url: "https://api.github.com/repos/baxterthehacker/public-repo/tags",
-//             blobs_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/blobs{/sha}",
-//             git_tags_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/tags{/sha}",
-//             git_refs_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/refs{/sha}",
-//             trees_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/trees{/sha}",
-//             statuses_url: "https://api.github.com/repos/baxterthehacker/public-repo/statuses/{sha}",
-//             languages_url: "https://api.github.com/repos/baxterthehacker/public-repo/languages",
-//             stargazers_url: "https://api.github.com/repos/baxterthehacker/public-repo/stargazers",
-//             contributors_url: "https://api.github.com/repos/baxterthehacker/public-repo/contributors",
-//             subscribers_url: "https://api.github.com/repos/baxterthehacker/public-repo/subscribers",
-//             subscription_url: "https://api.github.com/repos/baxterthehacker/public-repo/subscription",
-//             commits_url: "https://api.github.com/repos/baxterthehacker/public-repo/commits{/sha}",
-//             git_commits_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/commits{/sha}",
-//             comments_url: "https://api.github.com/repos/baxterthehacker/public-repo/comments{/number}",
-//             issue_comment_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues/comments{/number}",
-//             contents_url: "https://api.github.com/repos/baxterthehacker/public-repo/contents/{+path}",
-//             compare_url: "https://api.github.com/repos/baxterthehacker/public-repo/compare/{base}...{head}",
-//             merges_url: "https://api.github.com/repos/baxterthehacker/public-repo/merges",
-//             archive_url: "https://api.github.com/repos/baxterthehacker/public-repo/{archive_format}{/ref}",
-//             downloads_url: "https://api.github.com/repos/baxterthehacker/public-repo/downloads",
-//             issues_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues{/number}",
-//             pulls_url: "https://api.github.com/repos/baxterthehacker/public-repo/pulls{/number}",
-//             milestones_url: "https://api.github.com/repos/baxterthehacker/public-repo/milestones{/number}",
-//             notifications_url: "https://api.github.com/repos/baxterthehacker/public-repo/notifications" +
-//             "{?since,all,participating}",
-//             labels_url: "https://api.github.com/repos/baxterthehacker/public-repo/labels{/name}",
-//             releases_url: "https://api.github.com/repos/baxterthehacker/public-repo/releases{/id}",
-//             created_at: 1430869212,
-//             updated_at: "2015-05-05T23:40:12Z",
-//             pushed_at: 1430869217,
-//             git_url: "git://github.com/baxterthehacker/public-repo.git",
-//             ssh_url: "git@github.com:baxterthehacker/public-repo.git",
-//             clone_url: "https://github.com/baxterthehacker/public-repo.git",
-//             svn_url: "https://github.com/baxterthehacker/public-repo",
-//             homepage: null,
-//             size: 0,
-//             stargazers_logs: 0,
-//             watchers_logs: 0,
-//             language: null,
-//             has_issues: true,
-//             has_downloads: true,
-//             has_wiki: true,
-//             has_pages: true,
-//             forks_logs: 0,
-//             mirror_url: null,
-//             open_issues_logs: 0,
-//             forks: 0,
-//             open_issues: 0,
-//             watchers: 0,
-//             default_branch: "master",
-//             stargazers: 0,
-//             master_branch: "master"
-//         },
-//         pusher: {
-//             name: "baxterthehacker",
-//             email: "baxterthehacker@users.noreply.github.com"
-//         },
-//         sender: {
-//             login: "baxterthehacker",
-//             id: 6752317,
-//             avatar_url: "https://avatars.githubusercontent.com/u/6752317?v=3",
-//             gravatar_id: "",
-//             url: "https://api.github.com/users/baxterthehacker",
-//             html_url: "https://github.com/baxterthehacker",
-//             followers_url: "https://api.github.com/users/baxterthehacker/followers",
-//             following_url: "https://api.github.com/users/baxterthehacker/following{/other_user}",
-//             gists_url: "https://api.github.com/users/baxterthehacker/gists{/gist_id}",
-//             starred_url: "https://api.github.com/users/baxterthehacker/starred{/owner}{/repo}",
-//             subscriptions_url: "https://api.github.com/users/baxterthehacker/subscriptions",
-//             organizations_url: "https://api.github.com/users/baxterthehacker/orgs",
-//             repos_url: "https://api.github.com/users/baxterthehacker/repos",
-//             events_url: "https://api.github.com/users/baxterthehacker/events{/privacy}",
-//             received_events_url: "https://api.github.com/users/baxterthehacker/received_events",
-//             type: "User",
-//             site_admin: false
-//         }
-//     };
-// }
+function mockGithub() {
+    return {
+        ref: "refs/heads/changes",
+        before: "9049f1265b7d61be4a8904a9a27120d2064dab3b",
+        after: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
+        created: false,
+        deleted: false,
+        forced: false,
+        base_ref: null,
+        compare: "https://github.com/baxterthehacker/public-repo/compare/9049f1265b7d...0d1a26e67d8f",
+        commits: [
+            {
+                id: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
+                tree_id: "f9d2a07e9488b91af2641b26b9407fe22a451433",
+                distinct: true,
+                message: "Update README.md",
+                timestamp: "2015-05-05T19:40:15-04:00",
+                url: "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
+                author: {
+                    name: "baxterthehacker",
+                    email: "baxterthehacker@users.noreply.github.com",
+                    username: "baxterthehacker"
+                },
+                committer: {
+                    name: "baxterthehacker",
+                    email: "baxterthehacker@users.noreply.github.com",
+                    username: "baxterthehacker"
+                },
+                added: [
+
+                ],
+                removed: [
+
+                ],
+                modified: [
+                    "README.md"
+                ]
+            }
+        ],
+        head_commit: {
+            id: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
+            tree_id: "f9d2a07e9488b91af2641b26b9407fe22a451433",
+            distinct: true,
+            message: "Update README.md",
+            timestamp: "2015-05-05T19:40:15-04:00",
+            url: "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
+            author: {
+                name: "baxterthehacker",
+                email: "baxterthehacker@users.noreply.github.com",
+                username: "baxterthehacker"
+            },
+            committer: {
+                name: "baxterthehacker",
+                email: "baxterthehacker@users.noreply.github.com",
+                username: "baxterthehacker"
+            },
+            added: [
+
+            ],
+            removed: [
+
+            ],
+            modified: [
+                "README.md"
+            ]
+        },
+        repository: {
+            id: 35129377,
+            name: "public-repo",
+            full_name: "baxterthehacker/public-repo",
+            owner: {
+                name: "baxterthehacker",
+                email: "baxterthehacker@users.noreply.github.com"
+            },
+            private: false,
+            html_url: "https://github.com/baxterthehacker/public-repo",
+            description: "",
+            fork: false,
+            url: "https://github.com/baxterthehacker/public-repo",
+            forks_url: "https://api.github.com/repos/baxterthehacker/public-repo/forks",
+            keys_url: "https://api.github.com/repos/baxterthehacker/public-repo/keys{/key_id}",
+            collaborators_url: "https://api.github.com/repos/baxterthehacker/public-repo/collaborators{/collaborator}",
+            teams_url: "https://api.github.com/repos/baxterthehacker/public-repo/teams",
+            hooks_url: "https://api.github.com/repos/baxterthehacker/public-repo/hooks",
+            issue_events_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues/events{/number}",
+            events_url: "https://api.github.com/repos/baxterthehacker/public-repo/events",
+            assignees_url: "https://api.github.com/repos/baxterthehacker/public-repo/assignees{/user}",
+            branches_url: "https://api.github.com/repos/baxterthehacker/public-repo/branches{/branch}",
+            tags_url: "https://api.github.com/repos/baxterthehacker/public-repo/tags",
+            blobs_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/blobs{/sha}",
+            git_tags_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/tags{/sha}",
+            git_refs_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/refs{/sha}",
+            trees_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/trees{/sha}",
+            statuses_url: "https://api.github.com/repos/baxterthehacker/public-repo/statuses/{sha}",
+            languages_url: "https://api.github.com/repos/baxterthehacker/public-repo/languages",
+            stargazers_url: "https://api.github.com/repos/baxterthehacker/public-repo/stargazers",
+            contributors_url: "https://api.github.com/repos/baxterthehacker/public-repo/contributors",
+            subscribers_url: "https://api.github.com/repos/baxterthehacker/public-repo/subscribers",
+            subscription_url: "https://api.github.com/repos/baxterthehacker/public-repo/subscription",
+            commits_url: "https://api.github.com/repos/baxterthehacker/public-repo/commits{/sha}",
+            git_commits_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/commits{/sha}",
+            comments_url: "https://api.github.com/repos/baxterthehacker/public-repo/comments{/number}",
+            issue_comment_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues/comments{/number}",
+            contents_url: "https://api.github.com/repos/baxterthehacker/public-repo/contents/{+path}",
+            compare_url: "https://api.github.com/repos/baxterthehacker/public-repo/compare/{base}...{head}",
+            merges_url: "https://api.github.com/repos/baxterthehacker/public-repo/merges",
+            archive_url: "https://api.github.com/repos/baxterthehacker/public-repo/{archive_format}{/ref}",
+            downloads_url: "https://api.github.com/repos/baxterthehacker/public-repo/downloads",
+            issues_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues{/number}",
+            pulls_url: "https://api.github.com/repos/baxterthehacker/public-repo/pulls{/number}",
+            milestones_url: "https://api.github.com/repos/baxterthehacker/public-repo/milestones{/number}",
+            notifications_url: "https://api.github.com/repos/baxterthehacker/public-repo/notifications" +
+            "{?since,all,participating}",
+            labels_url: "https://api.github.com/repos/baxterthehacker/public-repo/labels{/name}",
+            releases_url: "https://api.github.com/repos/baxterthehacker/public-repo/releases{/id}",
+            created_at: 1430869212,
+            updated_at: "2015-05-05T23:40:12Z",
+            pushed_at: 1430869217,
+            git_url: "git://github.com/baxterthehacker/public-repo.git",
+            ssh_url: "git@github.com:baxterthehacker/public-repo.git",
+            clone_url: "https://github.com/baxterthehacker/public-repo.git",
+            svn_url: "https://github.com/baxterthehacker/public-repo",
+            homepage: null,
+            size: 0,
+            stargazers_logs: 0,
+            watchers_logs: 0,
+            language: null,
+            has_issues: true,
+            has_downloads: true,
+            has_wiki: true,
+            has_pages: true,
+            forks_logs: 0,
+            mirror_url: null,
+            open_issues_logs: 0,
+            forks: 0,
+            open_issues: 0,
+            watchers: 0,
+            default_branch: "master",
+            stargazers: 0,
+            master_branch: "master"
+        },
+        pusher: {
+            name: "baxterthehacker",
+            email: "baxterthehacker@users.noreply.github.com"
+        },
+        sender: {
+            login: "baxterthehacker",
+            id: 6752317,
+            avatar_url: "https://avatars.githubusercontent.com/u/6752317?v=3",
+            gravatar_id: "",
+            url: "https://api.github.com/users/baxterthehacker",
+            html_url: "https://github.com/baxterthehacker",
+            followers_url: "https://api.github.com/users/baxterthehacker/followers",
+            following_url: "https://api.github.com/users/baxterthehacker/following{/other_user}",
+            gists_url: "https://api.github.com/users/baxterthehacker/gists{/gist_id}",
+            starred_url: "https://api.github.com/users/baxterthehacker/starred{/owner}{/repo}",
+            subscriptions_url: "https://api.github.com/users/baxterthehacker/subscriptions",
+            organizations_url: "https://api.github.com/users/baxterthehacker/orgs",
+            repos_url: "https://api.github.com/users/baxterthehacker/repos",
+            events_url: "https://api.github.com/users/baxterthehacker/events{/privacy}",
+            received_events_url: "https://api.github.com/users/baxterthehacker/received_events",
+            type: "User",
+            site_admin: false
+        }
+    };
+}

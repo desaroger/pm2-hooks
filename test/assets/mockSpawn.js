@@ -8,10 +8,13 @@ let mockSpawn = require('mock-spawn');
 let originalSpawn = childProcess.spawn;
 
 module.exports = {
+    history: [],
     buildSpawn(fn = false) {
         let mySpawn = mockSpawn();
         if (fn) {
+            let self = this;
             mySpawn.setStrategy(function (command, args, options) {
+                // self.history.push([fn, command, args, options]);
                 return fn.call(this, args[0], options, { command, args });
             });
         } else {
@@ -27,4 +30,10 @@ module.exports = {
     restore() {
         childProcess.spawn = originalSpawn;
     }
+    // check() {
+    //     this.history.forEach((history) => {
+    //         let method = history.shift();
+    //         method(...history);
+    //     });
+    // }
 };
