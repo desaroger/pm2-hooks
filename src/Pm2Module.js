@@ -86,15 +86,12 @@ class Pm2Module {
         if (!app) {
             return null;
         }
-        console.log('');
-        console.log('app', app);
-        console.log('');
         let processOptions = _.get(app, 'pm2_env.env_hook');
         if (!processOptions) {
             console.log('nope');
             return null;
         }
-        console.log('found', processOptions);
+        console.log('options', processOptions);
         let data = _.get(app, 'pm2_env.env_hook');
         if (data === true) {
             data = {};
