@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 1.1.2 - 2017-03-04
+## 1.1.2-1.1.3 - 2017-03-04
 ### Add
 - Initial secret support for github
 
