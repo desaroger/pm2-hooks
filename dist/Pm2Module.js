@@ -109,25 +109,22 @@ var Pm2Module = function () {
             if (!app) {
                 return null;
             }
-            var processOptions = _.get(app, 'pm2_env.env_hook');
-            if (!processOptions) {
-                console.log('nope');
+            var config = _.get(app, 'pm2_env.env_hook');
+            if (!config) {
+                log('No options found for "' + app.name + '" route');
                 return null;
             }
-            console.log('options', processOptions);
-            console.log('');
-            var data = _.get(app, 'pm2_env.env_hook');
-            if (data === true) {
-                data = {};
+            if (config === true) {
+                config = {};
             }
 
-            // Data to WebhookServer route
+            // Config to WebhookServer route
             var self = this;
             var name = app.name || 'unknown';
-            var commandOptions = Object.assign({}, { cwd: data.cwd || app.pm_cwd }, data.commandOptions || {});
+            var commandOptions = Object.assign({}, { cwd: config.cwd || app.pm_cwd }, config.commandOptions || {});
             var route = {
                 name: name,
-                type: data.type,
+                type: config.type,
                 method: c(regeneratorRuntime.mark(function _callee(payload) {
                     var err;
                     return regeneratorRuntime.wrap(function _callee$(_context) {
@@ -137,14 +134,14 @@ var Pm2Module = function () {
                                     log('Parsed payload: ' + JSON.stringify(payload));
                                     _context.prev = 1;
 
-                                    if (!data.command) {
+                                    if (!config.command) {
                                         _context.next = 6;
                                         break;
                                     }
 
-                                    log('Running command: ' + data.command);
+                                    log('Running command: ' + config.command);
                                     _context.next = 6;
-                                    return self._runCommand(data.command, commandOptions);
+                                    return self._runCommand(config.command, commandOptions);
 
                                 case 6:
                                     _context.next = 13;
