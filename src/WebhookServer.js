@@ -201,7 +201,9 @@ class WebhookServer {
             }
 
             // Parse
-            console.log('body', req);
+            if (req.body && req.body.payload) {
+                req.body = req.body.payload;
+            }
             let body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
             let parseMap = {
                 github() {

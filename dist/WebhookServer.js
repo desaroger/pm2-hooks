@@ -281,7 +281,9 @@ var WebhookServer = function () {
                 }
 
                 // Parse
-                console.log('body', req);
+                if (req.body && req.body.payload) {
+                    req.body = req.body.payload;
+                }
                 var body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
                 var parseMap = {
                     github: function github() {
