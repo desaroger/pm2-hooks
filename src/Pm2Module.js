@@ -6,7 +6,7 @@ let _ = require('lodash');
 let co = require('co');
 let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
-let { log } = require('./utils');
+let { log, c } = require('./utils');
 
 class Pm2Module {
 
@@ -102,7 +102,7 @@ class Pm2Module {
         let route = {
             name,
             type: data.type,
-            method: co.wrap(function* () {
+            method: c(function* () {
                 try {
                     if (data.command) {
                         log(`Running command: ${data.command}`);
@@ -110,7 +110,7 @@ class Pm2Module {
                     }
                 } catch (e) {
                     let err = e.message || e;
-                    log(`${name}: Error: ${err}`, 2);
+                    log(`Error on "${name}" route: ${err}`, 2);
                     throw e;
                 }
             })

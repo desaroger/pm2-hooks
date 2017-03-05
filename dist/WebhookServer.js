@@ -11,6 +11,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var _ = require('lodash');
 var http = require('http');
 var bodyParser = require('body-parser');
+var crypto = require('crypto');
 
 var _require = require('./utils'),
     log = _require.log,
@@ -32,6 +33,10 @@ var WebhookServer = function () {
             port: process.env.PORT || 9000,
             routes: {}
         });
+        for (var name in options.routes) {
+            if (!options.routes.hasOwnProperty(name)) continue;
+            options.routes[name].name = name;
+        }
         this.options = options;
     }
 
@@ -94,16 +99,18 @@ var WebhookServer = function () {
             bodyParser.urlencoded({
                 extended: true
             })(req, res, c(regeneratorRuntime.mark(function _callee() {
-                var routeName, route, payload, result, message;
+                var routeName, route, payload, result, message, msg;
                 return regeneratorRuntime.wrap(function _callee$(_context) {
                     while (1) {
                         switch (_context.prev = _context.next) {
                             case 0:
+                                _context.prev = 0;
+
                                 // Mock
                                 routeName = self._getRouteName(req);
 
                                 if (routeName) {
-                                    _context.next = 5;
+                                    _context.next = 6;
                                     break;
                                 }
 
@@ -115,11 +122,11 @@ var WebhookServer = function () {
                                 }));
                                 return _context.abrupt('return');
 
-                            case 5:
+                            case 6:
                                 route = self.options.routes[routeName];
 
                                 if (route) {
-                                    _context.next = 10;
+                                    _context.next = 11;
                                     break;
                                 }
 
@@ -131,38 +138,35 @@ var WebhookServer = function () {
                                 }));
                                 return _context.abrupt('return');
 
-                            case 10:
+                            case 11:
 
                                 // Prepare the execution of the method
-                                payload = self._parsePayload(route.type, req.body);
+                                payload = self._parseRequest(req, route);
                                 result = void 0;
-                                _context.prev = 12;
+                                _context.prev = 13;
 
                                 result = route.method(payload);
 
                                 if (!isPromise(result)) {
-                                    _context.next = 18;
+                                    _context.next = 19;
                                     break;
                                 }
 
-                                _context.next = 17;
+                                _context.next = 18;
                                 return result;
 
-                            case 17:
+                            case 18:
                                 result = _context.sent;
 
-                            case 18:
+                            case 19:
                                 _context.next = 27;
                                 break;
 
-                            case 20:
-                                _context.prev = 20;
-                                _context.t0 = _context['catch'](12);
-                                message = _context.t0;
+                            case 21:
+                                _context.prev = 21;
+                                _context.t0 = _context['catch'](13);
+                                message = _context.t0.message ? _context.t0.message : _context.t0;
 
-                                if (message.message) {
-                                    message = message.message;
-                                }
                                 log('Error: Route "' + routeName + '" method error: ' + message, 2);
                                 res.end(JSON.stringify({
                                     status: 'error',
@@ -180,13 +184,27 @@ var WebhookServer = function () {
                                     code: 0,
                                     result: result
                                 }));
+                                _context.next = 36;
+                                break;
 
-                            case 29:
+                            case 31:
+                                _context.prev = 31;
+                                _context.t1 = _context['catch'](0);
+                                msg = _context.t1.message ? _context.t1.message : _context.t1;
+
+                                log(msg, 2);
+                                res.end(JSON.stringify({
+                                    status: 'error',
+                                    message: 'Unexpected error: ' + msg,
+                                    code: 2
+                                }));
+
+                            case 36:
                             case 'end':
                                 return _context.stop();
                         }
                     }
-                }, _callee, this, [[12, 20]]);
+                }, _callee, this, [[0, 31], [13, 21]]);
             })));
         }
 
@@ -209,6 +227,75 @@ var WebhookServer = function () {
             }
 
             return name;
+        }
+    }, {
+        key: '_parseRequest',
+        value: function _parseRequest(req, route) {
+            route = Object.assign({
+                name: '<unknown>',
+                type: 'auto',
+                secret: false
+            }, route);
+
+            // Auto-type
+            if (route.type === 'auto') {
+                if (req.headers['x-github-event']) {
+                    route.type = 'github';
+                }
+                if (route.type === 'auto') {
+                    route.type = false;
+                }
+            }
+
+            var result = {};
+            if (route.type) {
+                // Checks
+                var checksMap = {
+                    github: function github() {
+                        var error = false;
+                        if (!req.headers['x-github-event'] || !req.headers['x-hub-signature']) {
+                            error = 'Invalid headers';
+                        } else if (route.secret) {
+                            var hash = crypto.createHmac('sha1', route.secret);
+                            hash = hash.update(req.body).digest('hex');
+                            if ('sha1=' + hash !== req.headers['x-hub-signature']) {
+                                error = 'Invalid secret';
+                            }
+                        }
+                        return error;
+                    },
+                    test: function test() {}
+                };
+                var method = checksMap[route.type];
+                if (!method) {
+                    _error = 'Error, unknown route type ' + route.type + ': ' + _error;
+                    log(_error, 2);
+                    throw new Error(_error);
+                }
+
+                var _error = method();
+                if (_error) {
+                    _error = 'Error for route type ' + route.type + ': ' + _error;
+                    log(_error, 2);
+                    throw new Error(_error);
+                }
+
+                // Parse
+                var body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+                var parseMap = {
+                    github: function github() {
+                        result.name = _.get(body, 'repository.name');
+                        result.action = req.headers['x-github-event'];
+                        result.branch = _.get(body, 'ref', '').replace('refs/heads/', '') || false;
+                    },
+                    test: function test() {
+                        result = body;
+                    }
+                };
+                parseMap[route.type]();
+            }
+
+            return result;
         }
     }, {
         key: '_parsePayload',
