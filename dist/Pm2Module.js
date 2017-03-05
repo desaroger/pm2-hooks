@@ -109,10 +109,15 @@ var Pm2Module = function () {
             if (!app) {
                 return null;
             }
+            console.log('');
+            console.log('app', app);
+            console.log('');
             var processOptions = _.get(app, 'pm2_env.env_hook');
             if (!processOptions) {
+                console.log('nope');
                 return null;
             }
+            console.log('found', processOptions);
             var data = _.get(app, 'pm2_env.env_hook');
             if (data === true) {
                 data = {};
