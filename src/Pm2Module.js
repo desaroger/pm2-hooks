@@ -105,7 +105,8 @@ class Pm2Module {
         let route = {
             name,
             type: data.type,
-            method: c(function* () {
+            method: c(function* (payload) {
+                console.log('Received payload:', payload);
                 try {
                     if (data.command) {
                         log(`Running command: ${data.command}`);
