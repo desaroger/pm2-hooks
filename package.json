@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/desaroger/pm2-hooks#readme",
   "dependencies": {
+    "babel-regenerator-runtime": "^6.5.0",
     "body-parser": "^1.16.1",
     "co": "^4.6.0",
     "lodash": "^4.17.4",

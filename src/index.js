@@ -5,6 +5,7 @@
 let pmx = require('pmx');
 let pm2 = require('pm2');
 let Pm2Module = require('./Pm2Module');
+require('babel-regenerator-runtime');
 
 pmx.initModule({}, (errPMX, conf) => {
     pm2.connect((errPM2) => {
