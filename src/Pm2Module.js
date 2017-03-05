@@ -106,7 +106,7 @@ class Pm2Module {
             name,
             type: data.type,
             method: c(function* (payload) {
-                console.log('Received payldoad:', payload);
+                log(`Parsed payload: ${JSON.stringify(payload)}`);
                 try {
                     if (data.command) {
                         log(`Running command: ${data.command}`);

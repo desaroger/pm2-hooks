@@ -134,7 +134,7 @@ var Pm2Module = function () {
                         while (1) {
                             switch (_context.prev = _context.next) {
                                 case 0:
-                                    console.log('Received payldoad:', payload);
+                                    log('Parsed payload: ' + JSON.stringify(payload));
                                     _context.prev = 1;
 
                                     if (!data.command) {

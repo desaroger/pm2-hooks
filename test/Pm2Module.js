@@ -110,6 +110,10 @@ describe('Pm2Module', () => {
                 expect(command).to.equal('echo hi');
             });
             log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Parsed payload: \{}/);
+            });
+            log.mock((msg, status) => {
                 expect(msg).to.match(/running command: echo hi/i);
                 expect(status).to.equal(0);
             });
@@ -123,7 +127,7 @@ describe('Pm2Module', () => {
                 message: 'Route "a" was found',
                 code: 0
             });
-            expect(log.count).to.equal(2);
+            expect(log.count).to.equal(3);
             log.checkMocks();
         }));
 
@@ -132,6 +136,10 @@ describe('Pm2Module', () => {
                 expect(options).to.be.an('object');
                 expect(options.cwd).to.equal('/home/desaroger');
                 expect(command).to.equal('echo hi');
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Parsed payload: \{}/);
             });
             log.mock((msg, status) => {
                 expect(status).to.equal(0);
@@ -158,6 +166,10 @@ describe('Pm2Module', () => {
             });
             log.mock((msg, status) => {
                 expect(status).to.equal(0);
+                expect(msg).to.match(/Parsed payload: \{}/);
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
                 expect(msg).to.match(/Running command: echo-nope hi/);
             });
             log.mock((msg, status) => {
@@ -178,6 +190,10 @@ describe('Pm2Module', () => {
                 expect(options).to.be.an('object');
                 expect(options.cwd).to.equal('/home/yeah');
                 expect(command).to.equal('echo yeah');
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Parsed payload: \{}/);
             });
             log.mock((msg, status) => {
                 expect(status).to.equal(0);
@@ -202,6 +218,10 @@ describe('Pm2Module', () => {
                     this.emit('close', 'asd');
                     return cb(2);
                 };
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Parsed payload: \{}/);
             });
             log.mock((msg, status) => {
                 expect(status).to.equal(0);
