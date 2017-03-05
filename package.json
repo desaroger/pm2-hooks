@@ -1,7 +1,7 @@
 {
   "name": "pm2-hooks",
-  "version": "1.1.1",
-  "description": "Webhook server for pm2 compatible with any git repository",
+  "version": "1.1.2",
+  "description": "Webhook server for pm2, compatible with any git repository",
   "main": "dist/index.js",
   "scripts": {
     "build": "babel src --out-dir dist --copy-files",
