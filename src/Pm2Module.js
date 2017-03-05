@@ -106,7 +106,7 @@ class Pm2Module {
             name,
             type: data.type,
             method: c(function* (payload) {
-                console.log('Received payload:', payload);
+                console.log('Received payldoad:', payload);
                 try {
                     if (data.command) {
                         log(`Running command: ${data.command}`);
