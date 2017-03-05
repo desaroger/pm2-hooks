@@ -86,31 +86,28 @@ class Pm2Module {
         if (!app) {
             return null;
         }
-        let processOptions = _.get(app, 'pm2_env.env_hook');
-        if (!processOptions) {
-            console.log('nope');
+        let config = _.get(app, 'pm2_env.env_hook');
+        if (!config) {
+            log(`No options found for "${app.name}" route`);
             return null;
         }
-        console.log('options', processOptions);
-        console.log('');
-        let data = _.get(app, 'pm2_env.env_hook');
-        if (data === true) {
-            data = {};
+        if (config === true) {
+            config = {};
         }
 
-        // Data to WebhookServer route
+        // Config to WebhookServer route
         let self = this;
         let name = app.name || 'unknown';
-        let commandOptions = Object.assign({}, { cwd: data.cwd || app.pm_cwd }, data.commandOptions || {});
+        let commandOptions = Object.assign({}, { cwd: config.cwd || app.pm_cwd }, config.commandOptions || {});
         let route = {
             name,
-            type: data.type,
+            type: config.type,
             method: c(function* (payload) {
                 log(`Parsed payload: ${JSON.stringify(payload)}`);
                 try {
-                    if (data.command) {
-                        log(`Running command: ${data.command}`);
-                        yield self._runCommand(data.command, commandOptions);
+                    if (config.command) {
+                        log(`Running command: ${config.command}`);
+                        yield self._runCommand(config.command, commandOptions);
                     }
                 } catch (e) {
                     let err = e.message || e;
