@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.1.2 - 2017-03-04
+### Add
+- Initial secret support for github
+
 ## 1.1.0-1.1.1 - 2017-03-04
 ### Add
 - CWD configuration support
