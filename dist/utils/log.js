@@ -11,13 +11,15 @@ function log(msg) {
     msg = '[' + log.getDate() + '] ' + msg;
     if (log.mocks.length) {
         var method = log.mocks.shift();
-        return method.call(log, msg, status);
+        log.history.push({ method: method, msg: msg, status: status });
+        // return method.call(log, msg, status);
     } else {
         return log.defaultMethod(msg, status);
     }
 }
 
 log.count = 0;
+log.history = [];
 
 log.getDate = function build() {
     return new Date().toISOString();
@@ -39,7 +41,9 @@ log.defaultMethod = function defaultMethod(msg) {
     console[map[status]](msg);
 };
 
-log.mock = function mock(fn) {
+log.mock = function mock() {
+    var fn = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function () {};
+
     log.mocks.push(fn);
     log.mockedMethod = fn;
 };
@@ -49,6 +53,17 @@ log.restore = function restore() {
     log.mockedOnce = false;
     log.mockedMethod = false;
     log.mocks = [];
+    log.history = [];
+};
+
+log.checkMocks = function checkMocks() {
+    this.history.forEach(function (_ref) {
+        var method = _ref.method,
+            msg = _ref.msg,
+            status = _ref.status;
+
+        method(msg, status);
+    });
 };
 
 module.exports = log;
