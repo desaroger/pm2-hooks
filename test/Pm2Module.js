@@ -61,7 +61,6 @@ describe('Pm2Module', () => {
                 wrapEnv({
                     name: 'a'
                 }, {
-                    type: 'github',
                     command: 'echo hi',
                     cwd: '/home/desaroger'
                 }),
@@ -69,14 +68,12 @@ describe('Pm2Module', () => {
                     name: 'b',
                     pm_cwd: '/home/lol'
                 }, {
-                    type: 'gitlab',
                     command: 'echo-nope hi'
                 }),
                 wrapEnv({
                     name: 'c',
                     pm_cwd: '/home/nope'
                 }, {
-                    type: 'gitlab',
                     command: 'echo yeah',
                     cwd: '/home/yeah'
                 })
@@ -105,6 +102,7 @@ describe('Pm2Module', () => {
                 code: 1
             });
             expect(log.count).to.equal(1);
+            log.checkMocks();
         }));
 
         it('runs the command', c(function* () {
@@ -126,6 +124,7 @@ describe('Pm2Module', () => {
                 code: 0
             });
             expect(log.count).to.equal(2);
+            log.checkMocks();
         }));
 
         it('runs the command in the CWD if available on config', c(function* () {
@@ -134,19 +133,36 @@ describe('Pm2Module', () => {
                 expect(options.cwd).to.equal('/home/desaroger');
                 expect(command).to.equal('echo hi');
             });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Running command: echo hi/);
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Success: Route "a" was found/);
+            });
             let result = yield expect(callApi('/a')).to.be.fulfilled;
             expect(result).to.deep.equal({
                 status: 'success',
                 message: 'Route "a" was found',
                 code: 0
             });
+            log.checkMocks();
         }));
 
-        it('runs the command in the CWD with the app cwd if no present con config', c(function* () {
+        it('runs the command in the CWD with the app cwd if no present config', c(function* () {
             mockSpawn.start((command, options) => {
                 expect(options).to.be.an('object');
                 expect(options.cwd).to.equal('/home/lol');
                 expect(command).to.equal('echo-nope hi');
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Running command: echo-nope hi/);
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Success: Route "b" was found/);
             });
             let result = yield expect(callApi('/b')).to.be.fulfilled;
             expect(result).to.deep.equal({
@@ -154,6 +170,7 @@ describe('Pm2Module', () => {
                 message: 'Route "b" was found',
                 code: 0
             });
+            log.checkMocks();
         }));
 
         it('runs the command in the CWD with priority to the config', c(function* () {
@@ -162,12 +179,21 @@ describe('Pm2Module', () => {
                 expect(options.cwd).to.equal('/home/yeah');
                 expect(command).to.equal('echo yeah');
             });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Running command: echo yeah/);
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Success: Route "c" was found/);
+            });
             let result = yield expect(callApi('/c')).to.be.fulfilled;
             expect(result).to.deep.equal({
                 status: 'success',
                 message: 'Route "c" was found',
                 code: 0
             });
+            log.checkMocks();
         }));
 
         it('shows error if command error', c(function* () {
@@ -177,12 +203,25 @@ describe('Pm2Module', () => {
                     return cb(2);
                 };
             });
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Running command: echo hi/);
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(2);
+                expect(msg).to.match(/Error on "a" route: asd/);
+            });
+            log.mock((msg, status) => {
+                expect(status).to.equal(2);
+                expect(msg).to.match(/Error: Route "a" method error: asd/);
+            });
             let result = yield callApi('/a');
             expect(result).to.deep.equal({
                 status: 'error',
                 message: 'Route "a" method error: asd',
                 code: 2
             });
+            log.checkMocks();
         }));
     });
 

@@ -14,7 +14,8 @@ var childProcess = require('child_process');
 var WebhookServer = require('./WebhookServer');
 
 var _require = require('./utils'),
-    log = _require.log;
+    log = _require.log,
+    c = _require.c;
 
 var Pm2Module = function () {
     function Pm2Module() {
@@ -124,7 +125,7 @@ var Pm2Module = function () {
             var route = {
                 name: name,
                 type: data.type,
-                method: co.wrap(regeneratorRuntime.mark(function _callee() {
+                method: c(regeneratorRuntime.mark(function _callee() {
                     var err;
                     return regeneratorRuntime.wrap(function _callee$(_context) {
                         while (1) {
@@ -150,7 +151,7 @@ var Pm2Module = function () {
                                     _context.t0 = _context['catch'](0);
                                     err = _context.t0.message || _context.t0;
 
-                                    log(name + ': Error: ' + err, 2);
+                                    log('Error on "' + name + '" route: ' + err, 2);
                                     throw _context.t0;
 
                                 case 12:
