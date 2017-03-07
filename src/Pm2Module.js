@@ -3,7 +3,6 @@
  */
 
 let _ = require('lodash');
-let co = require('co');
 let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
 let { log, c } = require('./utils');

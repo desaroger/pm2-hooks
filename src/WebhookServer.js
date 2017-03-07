@@ -6,6 +6,7 @@ const _ = require('lodash');
 const http = require('http');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
+// const ipaddr = require('ipaddr.js');
 const { log, c, isPromise } = require('./utils');
 
 class WebhookServer {
@@ -20,6 +21,7 @@ class WebhookServer {
             routes: {}
         });
         for (let name in options.routes) {
+            /* istanbul ignore next */
             if (!options.routes.hasOwnProperty(name)) continue;
             options.routes[name].name = name;
         }
@@ -33,8 +35,12 @@ class WebhookServer {
      */
     start() {
         return new Promise((resolve, reject) => {
+            if (this.server) {
+                return reject('Server previously started');
+            }
             this.server = http.createServer(this._handleCall.bind(this));
             this.server.listen(this.options.port, (err) => {
+                /* istanbul ignore next */
                 if (err) return reject(err);
                 resolve(this);
             });
@@ -52,6 +58,7 @@ class WebhookServer {
                 return resolve(this);
             }
             this.server.close(() => {
+                delete this.server;
                 resolve(this);
             });
         });
@@ -121,11 +128,10 @@ class WebhookServer {
                     result
                 }));
             } catch (e) {
-                let msg = e.message ? e.message : e;
-                log(msg, 2);
+                log(e.message, 2);
                 res.end(JSON.stringify({
                     status: 'error',
-                    message: `Unexpected error: ${msg}`,
+                    message: `Unexpected error: ${e.message}`,
                     code: 2
                 }));
             }
@@ -157,19 +163,25 @@ class WebhookServer {
             secret: false
         }, route);
 
+        req.headers = _.transform(req.headers, (result, val, key) => {
+            result[key.toLowerCase()] = val;
+        });
+
         // Auto-type
         if (route.type === 'auto') {
             if (req.headers['x-github-event']) {
                 route.type = 'github';
+            } else if (req.headers['user-agent'] && /bitbucket/i.test(req.headers['user-agent'])) {
+                route.type = 'bitbucket';
             }
             if (route.type === 'auto') {
                 route.type = false;
             }
         }
 
+        // Checks
         let result = {};
         if (route.type) {
-            // Checks
             let checksMap = {
                 github() {
                     let error = false;
@@ -184,11 +196,31 @@ class WebhookServer {
                     }
                     return error;
                 },
+                bitbucket() {
+                    let error = false;
+                    let requiredHeaders = ['x-event-key', 'x-request-uuid'];
+                    if (requiredHeaders.some(k => !req.headers[k])) {
+                        error = 'Invalid headers';
+                    } else if (route.secret) {
+                        error = 'Secret not supported for bitbucket yet';
+                    } else {
+                        error = 'Invalid body';
+                        if (req.body && _.isObjectLike(req.body)) {
+                            let action = req.headers['x-event-key'].replace('repo:', '');
+                            if (!action) {
+                                error = 'Invalid headers';
+                            } else if (req.body[action]) {
+                                error = false;
+                            }
+                        }
+                    }
+                    return error;
+                },
                 test() {}
             };
             let method = checksMap[route.type];
             if (!method) {
-                error = `Error, unknown route type ${route.type}: ${error}`;
+                let error = `Error unknown route type ${route.type}`;
                 log(error, 2);
                 throw new Error(error);
             }
@@ -201,15 +233,42 @@ class WebhookServer {
             }
 
             // Parse
-            if (req.body && req.body.payload) {
-                req.body = req.body.payload;
-            }
             let body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+            body = body || {};
             let parseMap = {
                 github() {
+                    if (body.payload) {
+                        body = body.payload;
+                    }
+                    if (typeof body === 'string') {
+                        body = JSON.parse(body);
+                    }
                     result.name = _.get(body, 'repository.name');
                     result.action = req.headers['x-github-event'];
                     result.branch = _.get(body, 'ref', '').replace('refs/heads/', '') || false;
+                },
+                bitbucket() {
+                    result.action = req.headers['x-event-key'].replace('repo:', '');
+                    result.name = _.get(body, 'repository.name');
+                    result.branch = '<unknown>';
+                    let changes = _.get(body, `${result.action}.changes`) || [];
+                    let validChange = changes
+                        .reduce((total, change) => {
+                            total = total.concat([change.old, change.new]);
+                            return total;
+                        }, [])
+                        .filter((change) => {
+                            return change && change.type === 'branch';
+                        })
+                        .find((change) => {
+                            return !!change.name;
+                        });
+                    if (!validChange) {
+                        error = `Error for route type ${route.type}: Invalid "changes" key on body`;
+                        log(error, 2);
+                        throw new Error(error);
+                    }
+                    result.branch = validChange.name;
                 },
                 test() {
                     result = body;
@@ -219,14 +278,6 @@ class WebhookServer {
         }
 
         return result;
-    }
-
-    _parsePayload(type, payload) {
-        return {
-            name: 'pm2-hooks',
-            action: 'push',
-            branch: 'master'
-        };
     }
 
     /**
