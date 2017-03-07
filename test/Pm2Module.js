@@ -76,7 +76,11 @@ describe('Pm2Module', () => {
                 }, {
                     command: 'echo yeah',
                     cwd: '/home/yeah'
-                })
+                }),
+                wrapEnv({
+                    name: 'd',
+                    pm_cwd: '/home/nope'
+                }, {})
             ];
             pm2Module = new Pm2Module(apps, {
                 port: 1234
@@ -128,6 +132,25 @@ describe('Pm2Module', () => {
                 code: 0
             });
             expect(log.count).to.equal(3);
+            log.checkMocks();
+        }));
+
+        it('doesn\'t throw if no command', c(function* () {
+            log.mock((msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Parsed payload: \{}/);
+            });
+            log.mock((msg, status) => {
+                expect(msg).to.match(/route "d" was found/i);
+                expect(status).to.equal(0);
+            });
+            let result = yield callApi('/d');
+            expect(result).to.deep.equal({
+                status: 'success',
+                message: 'Route "d" was found',
+                code: 0
+            });
+            expect(log.count).to.equal(2);
             log.checkMocks();
         }));
 

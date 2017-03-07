@@ -1,10 +1,14 @@
 /**
  * Created by desaroger on 23/02/17.
  */
+/* eslint-disable global-require */
 
+let _ = require('lodash');
 let sinon = require('sinon');
 let { expect, c, callApi, log } = require('./assets');
 let WebhookServer = require('../src/WebhookServer');
+
+let mocks = getMocks();
 
 describe('webhookServer', () => {
     beforeEach(() => {
@@ -54,7 +58,8 @@ describe('webhookServer', () => {
         });
 
         it('shows as running', () => {
-            return whs.start()
+            return whs.stop()
+                .then(() => whs.start())
                 .then(() => {
                     expect(whs.isRunning()).to.equal(true);
                 });
@@ -92,8 +97,8 @@ describe('webhookServer', () => {
             });
         });
         afterEach(() => {
-            whs.stop();
             calls = 0;
+            return whs.stop();
         });
 
         it('the server is actually listening', c(function* () {
@@ -234,6 +239,32 @@ describe('webhookServer', () => {
             expect(calls).to.equal(0);
             log.checkMocks();
         }));
+
+        it('handles unexpected errors', c(function* () {
+            expect(calls).to.equal(0);
+            yield whs.start();
+            log.mock((msg, status) => {
+                throw new Error('SuperError');
+            }, { checkNow: true });
+            let body = yield callApi('/working',
+                {
+                    name: 'pm2-hooks',
+                    action: 'push',
+                    branch: 'master'
+                });
+            expect(body).to.be.deep.equal({
+                status: 'error',
+                message: 'Unexpected error: SuperError',
+                code: 2
+            });
+            expect(calls).to.equal(1);
+            log.checkMocks();
+        }));
+
+        it('throws an error if server previously listening', c(function* () {
+            yield expect(whs.start()).to.be.fulfilled;
+            yield expect(whs.start()).to.be.rejectedWith('Server previously started');
+        }));
     });
 
     describe('_parseRequest', () => {
@@ -272,6 +303,23 @@ describe('webhookServer', () => {
             });
             expect(() => whs._parseRequest(req, route))
                 .to.throw(/Error for route type github: Invalid headers/);
+            expect(log.count).to.equal(1);
+            log.checkMocks();
+        });
+
+        it('throws if unknown type', () => {
+            let route = {
+                type: 'nope'
+            };
+            let req = {
+                headers: {}
+            };
+            log.mock((msg, status) => {
+                expect(msg).to.match(/Error unknown route type nope/i);
+                expect(status).to.equal(2);
+            });
+            expect(() => whs._parseRequest(req, route))
+                .to.throw(/Error unknown route type nope/);
             expect(log.count).to.equal(1);
             log.checkMocks();
         });
@@ -385,6 +433,161 @@ describe('webhookServer', () => {
                 let result = whs._parseRequest(req, route);
                 expect(result.branch).to.equal('develop');
             });
+
+            it('works with a payload key', () => {
+                let route = {};
+                let req = {
+                    headers: {
+                        'x-github-event': 'push',
+                        'x-hub-signature': 'sha1=241949ceb9c5cf309f'
+                    },
+                    body: {
+                        payload: JSON.stringify({
+                            ref: 'refs/heads/develop',
+                            repository: {
+                                name: 'pm2-hooks'
+                            }
+                        })
+                    }
+                };
+                let result = whs._parseRequest(req, route);
+                expect(result.branch).to.equal('develop');
+            });
+
+            it('real example', () => {
+                let mock = mocks.github.push;
+                let route = {};
+                let req = {
+                    headers: mock.headers,
+                    body: JSON.stringify(mock.body)
+                };
+                let result = whs._parseRequest(req, route);
+                expect(result).to.deep.equal({
+                    action: 'push',
+                    branch: 'changes',
+                    name: 'public-repo'
+                });
+            });
+        });
+
+        describe('[bitbucket]', () => {
+            it('checks the headers', () => {
+                let route = {
+                    type: 'bitbucket'
+                };
+                let req = {
+                    headers: {}
+                };
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type bitbucket: Invalid headers/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type bitbucket: Invalid headers/);
+                log.checkMocks();
+            });
+
+            it('throw if no body found', () => {
+                let route = {};
+                let req = {
+                    headers: mocks.bitbucket.push.headers,
+                    body: {}
+                };
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type bitbucket: Invalid body/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type bitbucket: Invalid body/);
+                log.checkMocks();
+            });
+
+            it('throw if body isn\'t an object', () => {
+                let route = {};
+                let req = {
+                    headers: mocks.bitbucket.push.headers,
+                    body: 'nope'
+                };
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type bitbucket: Invalid body/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type bitbucket: Invalid body/);
+                log.checkMocks();
+            });
+
+            it('throw if uncapable of find the action', () => {
+                let route = {};
+                let req = {
+                    headers: _.clone(mocks.bitbucket.push.headers),
+                    body: {}
+                };
+                req.headers['X-Event-Key'] = 'repo:';
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type bitbucket: Invalid headers/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type bitbucket: Invalid headers/);
+                log.checkMocks();
+            });
+
+            it('throw if invalid "changes" key found', () => {
+                let route = {};
+                let req = {
+                    headers: mocks.bitbucket.push.headers,
+                    body: {
+                        push: {}
+                    }
+                };
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type bitbucket: Invalid "changes" key on body/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type bitbucket: Invalid "changes" key on body/);
+                log.checkMocks();
+            });
+
+            it('throws when there is a secret, as is not supported yet', () => {
+                let route = {
+                    type: 'bitbucket',
+                    secret: 'lol'
+                };
+                let req = {
+                    headers: mocks.bitbucket.push.headers,
+                    body: {}
+                };
+                log.mock((msg, status) => {
+                    expect(status).to.equal(2);
+                    expect(msg).to.match(/Error for route type bitbucket: Secret not supported for bitbucket yet/);
+                });
+                expect(() => whs._parseRequest(req, route))
+                    .to.throw(/Error for route type bitbucket: Secret not supported for bitbucket yet/);
+                log.checkMocks();
+            });
+
+            it('returns the action', () => {
+                let route = {};
+                let req = mocks.bitbucket.push;
+                let result = whs._parseRequest(req, route);
+                expect(result.action).to.equal('push');
+            });
+
+            it('returns the repository name', () => {
+                let route = {};
+                let req = mocks.bitbucket.push;
+                let result = whs._parseRequest(req, route);
+                expect(result.name).to.equal('pm2-hooks');
+            });
+
+            it('returns the branch name', () => {
+                let route = {};
+                let req = mocks.bitbucket.push;
+                let result = whs._parseRequest(req, route);
+                expect(result.branch).to.equal('master');
+            });
         });
     });
 
@@ -432,169 +635,13 @@ describe('webhookServer', () => {
     });
 });
 
-function mockGithub() {
+function getMocks() {
     return {
-        ref: "refs/heads/changes",
-        before: "9049f1265b7d61be4a8904a9a27120d2064dab3b",
-        after: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-        created: false,
-        deleted: false,
-        forced: false,
-        base_ref: null,
-        compare: "https://github.com/baxterthehacker/public-repo/compare/9049f1265b7d...0d1a26e67d8f",
-        commits: [
-            {
-                id: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-                tree_id: "f9d2a07e9488b91af2641b26b9407fe22a451433",
-                distinct: true,
-                message: "Update README.md",
-                timestamp: "2015-05-05T19:40:15-04:00",
-                url: "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-                author: {
-                    name: "baxterthehacker",
-                    email: "baxterthehacker@users.noreply.github.com",
-                    username: "baxterthehacker"
-                },
-                committer: {
-                    name: "baxterthehacker",
-                    email: "baxterthehacker@users.noreply.github.com",
-                    username: "baxterthehacker"
-                },
-                added: [
-
-                ],
-                removed: [
-
-                ],
-                modified: [
-                    "README.md"
-                ]
-            }
-        ],
-        head_commit: {
-            id: "0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-            tree_id: "f9d2a07e9488b91af2641b26b9407fe22a451433",
-            distinct: true,
-            message: "Update README.md",
-            timestamp: "2015-05-05T19:40:15-04:00",
-            url: "https://github.com/baxterthehacker/public-repo/commit/0d1a26e67d8f5eaf1f6ba5c57fc3c7d91ac0fd1c",
-            author: {
-                name: "baxterthehacker",
-                email: "baxterthehacker@users.noreply.github.com",
-                username: "baxterthehacker"
-            },
-            committer: {
-                name: "baxterthehacker",
-                email: "baxterthehacker@users.noreply.github.com",
-                username: "baxterthehacker"
-            },
-            added: [
-
-            ],
-            removed: [
-
-            ],
-            modified: [
-                "README.md"
-            ]
+        bitbucket: {
+            push: require('./mocks/bitbucket_push.json')
         },
-        repository: {
-            id: 35129377,
-            name: "public-repo",
-            full_name: "baxterthehacker/public-repo",
-            owner: {
-                name: "baxterthehacker",
-                email: "baxterthehacker@users.noreply.github.com"
-            },
-            private: false,
-            html_url: "https://github.com/baxterthehacker/public-repo",
-            description: "",
-            fork: false,
-            url: "https://github.com/baxterthehacker/public-repo",
-            forks_url: "https://api.github.com/repos/baxterthehacker/public-repo/forks",
-            keys_url: "https://api.github.com/repos/baxterthehacker/public-repo/keys{/key_id}",
-            collaborators_url: "https://api.github.com/repos/baxterthehacker/public-repo/collaborators{/collaborator}",
-            teams_url: "https://api.github.com/repos/baxterthehacker/public-repo/teams",
-            hooks_url: "https://api.github.com/repos/baxterthehacker/public-repo/hooks",
-            issue_events_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues/events{/number}",
-            events_url: "https://api.github.com/repos/baxterthehacker/public-repo/events",
-            assignees_url: "https://api.github.com/repos/baxterthehacker/public-repo/assignees{/user}",
-            branches_url: "https://api.github.com/repos/baxterthehacker/public-repo/branches{/branch}",
-            tags_url: "https://api.github.com/repos/baxterthehacker/public-repo/tags",
-            blobs_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/blobs{/sha}",
-            git_tags_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/tags{/sha}",
-            git_refs_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/refs{/sha}",
-            trees_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/trees{/sha}",
-            statuses_url: "https://api.github.com/repos/baxterthehacker/public-repo/statuses/{sha}",
-            languages_url: "https://api.github.com/repos/baxterthehacker/public-repo/languages",
-            stargazers_url: "https://api.github.com/repos/baxterthehacker/public-repo/stargazers",
-            contributors_url: "https://api.github.com/repos/baxterthehacker/public-repo/contributors",
-            subscribers_url: "https://api.github.com/repos/baxterthehacker/public-repo/subscribers",
-            subscription_url: "https://api.github.com/repos/baxterthehacker/public-repo/subscription",
-            commits_url: "https://api.github.com/repos/baxterthehacker/public-repo/commits{/sha}",
-            git_commits_url: "https://api.github.com/repos/baxterthehacker/public-repo/git/commits{/sha}",
-            comments_url: "https://api.github.com/repos/baxterthehacker/public-repo/comments{/number}",
-            issue_comment_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues/comments{/number}",
-            contents_url: "https://api.github.com/repos/baxterthehacker/public-repo/contents/{+path}",
-            compare_url: "https://api.github.com/repos/baxterthehacker/public-repo/compare/{base}...{head}",
-            merges_url: "https://api.github.com/repos/baxterthehacker/public-repo/merges",
-            archive_url: "https://api.github.com/repos/baxterthehacker/public-repo/{archive_format}{/ref}",
-            downloads_url: "https://api.github.com/repos/baxterthehacker/public-repo/downloads",
-            issues_url: "https://api.github.com/repos/baxterthehacker/public-repo/issues{/number}",
-            pulls_url: "https://api.github.com/repos/baxterthehacker/public-repo/pulls{/number}",
-            milestones_url: "https://api.github.com/repos/baxterthehacker/public-repo/milestones{/number}",
-            notifications_url: "https://api.github.com/repos/baxterthehacker/public-repo/notifications" +
-            "{?since,all,participating}",
-            labels_url: "https://api.github.com/repos/baxterthehacker/public-repo/labels{/name}",
-            releases_url: "https://api.github.com/repos/baxterthehacker/public-repo/releases{/id}",
-            created_at: 1430869212,
-            updated_at: "2015-05-05T23:40:12Z",
-            pushed_at: 1430869217,
-            git_url: "git://github.com/baxterthehacker/public-repo.git",
-            ssh_url: "git@github.com:baxterthehacker/public-repo.git",
-            clone_url: "https://github.com/baxterthehacker/public-repo.git",
-            svn_url: "https://github.com/baxterthehacker/public-repo",
-            homepage: null,
-            size: 0,
-            stargazers_logs: 0,
-            watchers_logs: 0,
-            language: null,
-            has_issues: true,
-            has_downloads: true,
-            has_wiki: true,
-            has_pages: true,
-            forks_logs: 0,
-            mirror_url: null,
-            open_issues_logs: 0,
-            forks: 0,
-            open_issues: 0,
-            watchers: 0,
-            default_branch: "master",
-            stargazers: 0,
-            master_branch: "master"
-        },
-        pusher: {
-            name: "baxterthehacker",
-            email: "baxterthehacker@users.noreply.github.com"
-        },
-        sender: {
-            login: "baxterthehacker",
-            id: 6752317,
-            avatar_url: "https://avatars.githubusercontent.com/u/6752317?v=3",
-            gravatar_id: "",
-            url: "https://api.github.com/users/baxterthehacker",
-            html_url: "https://github.com/baxterthehacker",
-            followers_url: "https://api.github.com/users/baxterthehacker/followers",
-            following_url: "https://api.github.com/users/baxterthehacker/following{/other_user}",
-            gists_url: "https://api.github.com/users/baxterthehacker/gists{/gist_id}",
-            starred_url: "https://api.github.com/users/baxterthehacker/starred{/owner}{/repo}",
-            subscriptions_url: "https://api.github.com/users/baxterthehacker/subscriptions",
-            organizations_url: "https://api.github.com/users/baxterthehacker/orgs",
-            repos_url: "https://api.github.com/users/baxterthehacker/repos",
-            events_url: "https://api.github.com/users/baxterthehacker/events{/privacy}",
-            received_events_url: "https://api.github.com/users/baxterthehacker/received_events",
-            type: "User",
-            site_admin: false
+        github: {
+            push: require('./mocks/github_push.json')
         }
     };
 }
