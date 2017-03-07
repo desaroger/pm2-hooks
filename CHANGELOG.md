@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.1.4 - 2017-03-07
+### Add
+- Initial support for bitbucket
+
 ## 1.1.2-1.1.3 - 2017-03-04
 ### Add
 - Initial secret support for github
