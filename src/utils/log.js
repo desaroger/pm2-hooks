@@ -6,8 +6,12 @@ function log(msg, status = 0) {
     log.count++;
     msg = `[${log.getDate()}] ${msg}`;
     if (log.mocks.length) {
-        let method = log.mocks.shift();
-        log.history.push({ method, msg, status });
+        let mock = log.mocks.shift();
+        if (mock.options.checkNow) {
+            mock.method(msg, status);
+        } else {
+            log.history.push({ method: mock.method, msg, status });
+        }
         // return method.call(log, msg, status);
     } else {
         return log.defaultMethod(msg, status);
@@ -35,9 +39,9 @@ log.defaultMethod = function defaultMethod(msg, status = 0) {
     console[map[status]](msg);
 };
 
-log.mock = function mock(fn = () => {}) {
-    log.mocks.push(fn);
-    log.mockedMethod = fn;
+log.mock = function mock(method = () => {}, options = {}) {
+    log.mocks.push({ method, options });
+    log.mockedMethod = method;
 };
 
 log.restore = function restore() {

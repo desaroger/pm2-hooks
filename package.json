@@ -1,6 +1,6 @@
 {
   "name": "pm2-hooks",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "Webhook server for pm2, compatible with any git repository",
   "main": "dist/index.js",
   "scripts": {
@@ -28,6 +28,7 @@
     "babel-regenerator-runtime": "^6.5.0",
     "body-parser": "^1.16.1",
     "co": "^4.6.0",
+    "ipaddr.js": "^1.2.0",
     "lodash": "^4.17.4",
     "pm2": "^2.4.0",
     "pmx": "^1.0.3",

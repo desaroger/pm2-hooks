@@ -1,0 +1,47 @@
+{
+  "headers": {
+    "X-Request-UUID": "32we352ewrt433e",
+    "X-Event-Key": "repo:push",
+    "User-Agent": "Bitbucket-Webhooks/2.0"
+  },
+  "body": {
+    "push": {
+      "changes": [
+        {
+          "old": {
+            "type": "branch"
+          },
+          "new": {
+            "type": "branch",
+            "name": "master"
+          }
+        }
+      ]
+    },
+    "actor": {
+      "username": "desaroger",
+      "display_name": "Roger Fos Soler",
+      "type": "user",
+      "uuid": "{02948f98-764-4566-7644-03937a689682}",
+      "links": {}
+    },
+    "repository": {
+      "website": "",
+      "scm": "git",
+      "name": "pm2-hooks",
+      "links": {},
+      "project": {},
+      "full_name": "desaroger/pm2-hooks",
+      "owner": {
+        "username": "desaroger",
+        "display_name": "desaroger",
+        "type": "user",
+        "uuid": "{9efba52f-e18a-45df-b87f-6c663ac9d831}",
+        "links": {}
+      },
+      "type": "repository",
+      "is_private": true,
+      "uuid": "{711d3593-23d7-4e12-82e7-335577188776}"
+    }
+  }
+}
