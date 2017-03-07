@@ -243,9 +243,14 @@ describe('webhookServer', () => {
         it('handles unexpected errors', c(function* () {
             expect(calls).to.equal(0);
             yield whs.start();
+
             log.mock((msg, status) => {
                 throw new Error('SuperError');
             }, { checkNow: true });
+            log.mock((msg, status) => {
+                expect(status).to.equal(2);
+                expect(msg).to.match(/SuperError/);
+            });
             let body = yield callApi('/working',
                 {
                     name: 'pm2-hooks',
@@ -268,7 +273,7 @@ describe('webhookServer', () => {
     });
 
     describe('_parseRequest', () => {
-        let whs, spy, mockReq;
+        let whs;
         before(() => {
             whs = new WebhookServer({
                 port: 1234,
@@ -278,12 +283,7 @@ describe('webhookServer', () => {
                     }
                 }
             });
-            spy = sinon.spy(whs.options.routes.demo, 'method');
-            mockReq = (url) => {
-                return {
-                    url
-                };
-            };
+            sinon.spy(whs.options.routes.demo, 'method');
         });
 
         it('exists', () => {
@@ -592,7 +592,7 @@ describe('webhookServer', () => {
     });
 
     describe('_getRouteName', () => {
-        let whs, spy, mockReq;
+        let whs, mockReq;
         before(() => {
             whs = new WebhookServer({
                 port: 1234,
@@ -602,7 +602,7 @@ describe('webhookServer', () => {
                     }
                 }
             });
-            spy = sinon.spy(whs.options.routes.demo, 'method');
+            sinon.spy(whs.options.routes.demo, 'method');
             mockReq = (url) => {
                 return {
                     url

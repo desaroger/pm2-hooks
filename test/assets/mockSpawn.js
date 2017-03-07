@@ -12,7 +12,6 @@ module.exports = {
     buildSpawn(fn = false) {
         let mySpawn = mockSpawn();
         if (fn) {
-            let self = this;
             mySpawn.setStrategy(function (command, args, options) {
                 // self.history.push([fn, command, args, options]);
                 return fn.call(this, args[0], options, { command, args });

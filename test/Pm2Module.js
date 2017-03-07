@@ -311,10 +311,19 @@ describe('Pm2Module', () => {
                 c: {},
                 d: { pm2_env: {} }
             };
+            let mockLog = (msg, status) => {
+                expect(status).to.equal(0);
+                expect(msg).to.match(/No options found for "undefined" route/);
+            };
+            log.mock(mockLog);
+            log.mock(mockLog);
+
             _.values(objs)
                 .forEach((opts) => {
                     expect(Pm2Module._parseProcess(opts)).to.equal(null);
                 });
+            expect(log.count).to.equal(2);
+            log.checkMocks();
         });
 
         it('returns the route if valid object', () => {
