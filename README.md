@@ -37,8 +37,7 @@ $ pm2 install pm2-hooks
 
 Warning: This library currently (2017 feb 26) is in ALPHA state. This means some things:
 
-- You can help me a lot making a comment/issue
-- I don't recommend you to make a PR for now, as I am actively working on this project
+- You can help me a lot making a comment/issue/PR
 - I will try to publish the last version to npm so you can install it with only `pm2 install pm2-hooks`. If for some reason the version on npm is outdated you always will be capable of run `pm2 install desaroger/pm2-hooks` to be sure to install the last version directly from the repository.
 
 
@@ -46,9 +45,9 @@ Warning: This library currently (2017 feb 26) is in ALPHA state. This means some
 
 ## Step 1: Prepare the ecosystem file
 
-By default **pm2-hooks** doesn't do anything. You need to set the key `env_hooks` inside the config of a given app, inside the ecosystem file.
+By default **pm2-hooks** doesn't do anything. You need to set the key `env_hook` inside the config of a given app, inside the ecosystem file.
 
-If env_hooks isn't defined or is falsy then is disabled.
+If env_hook isn't defined or is falsy then is disabled.
 
 Example of an ecosystem file:
 
@@ -62,7 +61,7 @@ Example of an ecosystem file:
 		{
 			name: 'api-2',
 			script: 'server.js',
-			env_hooks: {
+			env_hook: {
 				command: 'git pull && npm i && npm test && pm2 restart api-2',
 				cwd: '/home/desaroger'
 			}
