@@ -8,7 +8,7 @@ let urlJoin = require('url-join');
 // let expect = require('./expect');
 
 module.exports = (path, payload = false, options = {}) => {
-    path = urlJoin('http://localhost:1234', path);
+    path = urlJoin('http://localhost:1234', path || '/');
     _.defaults(options, {
         method: 'POST',
         uri: path,
