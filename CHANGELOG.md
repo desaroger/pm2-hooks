@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.1.5 - 2018-06-01
+### Change
+- Upgrade dependencies
+
+### Fix
+- Readme typo
+
 ## 1.1.4 - 2017-03-07
 ### Add
 - Initial support for bitbucket
