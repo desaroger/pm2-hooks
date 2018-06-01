@@ -12,6 +12,7 @@ var _ = require('lodash');
 var http = require('http');
 var bodyParser = require('body-parser');
 var crypto = require('crypto');
+// const ipaddr = require('ipaddr.js');
 
 var _require = require('./utils'),
     log = _require.log,
@@ -34,6 +35,7 @@ var WebhookServer = function () {
             routes: {}
         });
         for (var name in options.routes) {
+            /* istanbul ignore next */
             if (!options.routes.hasOwnProperty(name)) continue;
             options.routes[name].name = name;
         }
@@ -53,8 +55,12 @@ var WebhookServer = function () {
             var _this = this;
 
             return new Promise(function (resolve, reject) {
+                if (_this.server) {
+                    return reject('Server previously started');
+                }
                 _this.server = http.createServer(_this._handleCall.bind(_this));
                 _this.server.listen(_this.options.port, function (err) {
+                    /* istanbul ignore next */
                     if (err) return reject(err);
                     resolve(_this);
                 });
@@ -77,6 +83,7 @@ var WebhookServer = function () {
                     return resolve(_this2);
                 }
                 _this2.server.close(function () {
+                    delete _this2.server;
                     resolve(_this2);
                 });
             });
@@ -98,8 +105,8 @@ var WebhookServer = function () {
             var self = this;
             bodyParser.urlencoded({
                 extended: true
-            })(req, res, c(regeneratorRuntime.mark(function _callee() {
-                var routeName, route, payload, result, message, msg;
+            })(req, res, c( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
+                var routeName, route, payload, result, message;
                 return regeneratorRuntime.wrap(function _callee$(_context) {
                     while (1) {
                         switch (_context.prev = _context.next) {
@@ -184,22 +191,21 @@ var WebhookServer = function () {
                                     code: 0,
                                     result: result
                                 }));
-                                _context.next = 36;
+                                _context.next = 35;
                                 break;
 
                             case 31:
                                 _context.prev = 31;
                                 _context.t1 = _context['catch'](0);
-                                msg = _context.t1.message ? _context.t1.message : _context.t1;
 
-                                log(msg, 2);
+                                log(_context.t1.message, 2);
                                 res.end(JSON.stringify({
                                     status: 'error',
-                                    message: 'Unexpected error: ' + msg,
+                                    message: 'Unexpected error: ' + _context.t1.message,
                                     code: 2
                                 }));
 
-                            case 36:
+                            case 35:
                             case 'end':
                                 return _context.stop();
                         }
@@ -237,19 +243,25 @@ var WebhookServer = function () {
                 secret: false
             }, route);
 
+            req.headers = _.transform(req.headers, function (result, val, key) {
+                result[key.toLowerCase()] = val;
+            });
+
             // Auto-type
             if (route.type === 'auto') {
                 if (req.headers['x-github-event']) {
                     route.type = 'github';
+                } else if (req.headers['user-agent'] && /bitbucket/i.test(req.headers['user-agent'])) {
+                    route.type = 'bitbucket';
                 }
                 if (route.type === 'auto') {
                     route.type = false;
                 }
             }
 
+            // Checks
             var result = {};
             if (route.type) {
-                // Checks
                 var checksMap = {
                     github: function github() {
                         var error = false;
@@ -264,32 +276,78 @@ var WebhookServer = function () {
                         }
                         return error;
                     },
+                    bitbucket: function bitbucket() {
+                        var error = false;
+                        var requiredHeaders = ['x-event-key', 'x-request-uuid'];
+                        if (requiredHeaders.some(function (k) {
+                            return !req.headers[k];
+                        })) {
+                            error = 'Invalid headers';
+                        } else if (route.secret) {
+                            error = 'Secret not supported for bitbucket yet';
+                        } else {
+                            error = 'Invalid body';
+                            if (req.body && _.isObjectLike(req.body)) {
+                                var action = req.headers['x-event-key'].replace('repo:', '');
+                                if (!action) {
+                                    error = 'Invalid headers';
+                                } else if (req.body[action]) {
+                                    error = false;
+                                }
+                            }
+                        }
+                        return error;
+                    },
                     test: function test() {}
                 };
                 var method = checksMap[route.type];
                 if (!method) {
-                    _error = 'Error, unknown route type ' + route.type + ': ' + _error;
+                    var _error = 'Error unknown route type ' + route.type;
                     log(_error, 2);
                     throw new Error(_error);
                 }
 
-                var _error = method();
-                if (_error) {
-                    _error = 'Error for route type ' + route.type + ': ' + _error;
-                    log(_error, 2);
-                    throw new Error(_error);
+                var error = method();
+                if (error) {
+                    error = 'Error for route type ' + route.type + ': ' + error;
+                    log(error, 2);
+                    throw new Error(error);
                 }
 
                 // Parse
-                if (req.body && req.body.payload) {
-                    req.body = req.body.payload;
-                }
                 var body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+                body = body || {};
                 var parseMap = {
                     github: function github() {
+                        if (body.payload) {
+                            body = body.payload;
+                        }
+                        if (typeof body === 'string') {
+                            body = JSON.parse(body);
+                        }
                         result.name = _.get(body, 'repository.name');
                         result.action = req.headers['x-github-event'];
                         result.branch = _.get(body, 'ref', '').replace('refs/heads/', '') || false;
+                    },
+                    bitbucket: function bitbucket() {
+                        result.action = req.headers['x-event-key'].replace('repo:', '');
+                        result.name = _.get(body, 'repository.name');
+                        result.branch = '<unknown>';
+                        var changes = _.get(body, result.action + '.changes') || [];
+                        var validChange = changes.reduce(function (total, change) {
+                            total = total.concat([change.old, change.new]);
+                            return total;
+                        }, []).filter(function (change) {
+                            return change && change.type === 'branch';
+                        }).find(function (change) {
+                            return !!change.name;
+                        });
+                        if (!validChange) {
+                            error = 'Error for route type ' + route.type + ': Invalid "changes" key on body';
+                            log(error, 2);
+                            throw new Error(error);
+                        }
+                        result.branch = validChange.name;
                     },
                     test: function test() {
                         result = body;
@@ -299,15 +357,6 @@ var WebhookServer = function () {
             }
 
             return result;
-        }
-    }, {
-        key: '_parsePayload',
-        value: function _parsePayload(type, payload) {
-            return {
-                name: 'pm2-hooks',
-                action: 'push',
-                branch: 'master'
-            };
         }
 
         /**

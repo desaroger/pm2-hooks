@@ -9,7 +9,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  */
 
 var _ = require('lodash');
-var co = require('co');
 var childProcess = require('child_process');
 var WebhookServer = require('./WebhookServer');
 
@@ -125,7 +124,7 @@ var Pm2Module = function () {
             var route = {
                 name: name,
                 type: config.type,
-                method: c(regeneratorRuntime.mark(function _callee(payload) {
+                method: c( /*#__PURE__*/regeneratorRuntime.mark(function _callee(payload) {
                     var err;
                     return regeneratorRuntime.wrap(function _callee$(_context) {
                         while (1) {

@@ -10,8 +10,12 @@ function log(msg) {
     log.count++;
     msg = '[' + log.getDate() + '] ' + msg;
     if (log.mocks.length) {
-        var method = log.mocks.shift();
-        log.history.push({ method: method, msg: msg, status: status });
+        var mock = log.mocks.shift();
+        if (mock.options.checkNow) {
+            mock.method(msg, status);
+        } else {
+            log.history.push({ method: mock.method, msg: msg, status: status });
+        }
         // return method.call(log, msg, status);
     } else {
         return log.defaultMethod(msg, status);
@@ -42,10 +46,11 @@ log.defaultMethod = function defaultMethod(msg) {
 };
 
 log.mock = function mock() {
-    var fn = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function () {};
+    var method = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : function () {};
+    var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
-    log.mocks.push(fn);
-    log.mockedMethod = fn;
+    log.mocks.push({ method: method, options: options });
+    log.mockedMethod = method;
 };
 
 log.restore = function restore() {
