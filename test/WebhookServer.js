@@ -225,12 +225,14 @@ describe('webhookServer', () => {
                 expect(msg).to.match(/route "checkPayload" was found/i);
                 expect(status).to.equal(0);
             });
-            let body = yield callApi('/checkPayload',
+            let body = yield callApi(
+                '/checkPayload',
                 {
                     name: 'pm2-hooks',
                     action: 'push',
                     branch: 'master'
-                });
+                }
+            );
             expect(body).to.be.deep.equal({
                 status: 'success',
                 message: 'Route "checkPayload" was found',
@@ -251,12 +253,14 @@ describe('webhookServer', () => {
                 expect(status).to.equal(2);
                 expect(msg).to.match(/SuperError/);
             });
-            let body = yield callApi('/working',
+            let body = yield callApi(
+                '/working',
                 {
                     name: 'pm2-hooks',
                     action: 'push',
                     branch: 'master'
-                });
+                }
+            );
             expect(body).to.be.deep.equal({
                 status: 'error',
                 message: 'Unexpected error: SuperError',
