@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.1.9 - 2018-08-05
+### Fix
+- Issue with github webhook without secret, not receiving the header
+
 ## 1.1.5-8 - 2018-06-01
 ### Change
 - Upgrade dependencies
