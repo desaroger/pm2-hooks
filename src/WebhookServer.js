@@ -185,7 +185,7 @@ class WebhookServer {
             let checksMap = {
                 github() {
                     let error = false;
-                    if (!req.headers['x-github-event'] || !req.headers['x-hub-signature']) {
+                    if (!req.headers['x-github-event'] || (route.secret && !req.headers['x-hub-signature'])) {
                         error = 'Invalid headers';
                     } else if (route.secret) {
                         let hash = crypto.createHmac('sha1', route.secret);
