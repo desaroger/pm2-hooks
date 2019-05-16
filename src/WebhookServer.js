@@ -184,15 +184,24 @@ class WebhookServer {
         if (route.type) {
             let checksMap = {
                 github() {
-                    let error = false;
-                    if (!req.headers['x-github-event'] || (route.secret && !req.headers['x-hub-signature'])) {
-                        error = 'Invalid headers';
-                    } else if (route.secret) {
-                        let hash = crypto.createHmac('sha1', route.secret);
-                        hash = hash.update(req.body).digest('hex');
-                        if (`sha1=${hash}` !== req.headers['x-hub-signature']) {
-                            error = 'Invalid secret';
+                    let error = false,
+                        hash, sig;
+                    if (route.secret) {
+                        if (req.headers['x-hub-signature']) { // GitHub
+                            hash = crypto.createHmac('sha1', route.secret);
+                            hash = `sha1=${hash.update(req.body).digest('hex')}`;
+                            sig = req.headers['x-hub-signature'];
+                        } else if (req.headers['x-gogs-signature']) { // Gogs
+                            hash = crypto.createHmac('sha256', route.secret);
+                            hash = hash.update(req.body).digest('hex');
+                            sig = req.headers['x-gogs-signature'];
+                        } else { // No signature
+                            error = 'Invalid headers';
+                        } if (hash !== sig) { // Invalid signature
+                            error = 'Invalid headers';
                         }
+                    } else if (!req.headers['x-github-event']) {
+                        error = 'Invalid headers';
                     }
                     return error;
                 },
