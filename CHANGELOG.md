@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.1.10 - 2019-07-06
+### Fix
+- Issue with bitbucket body not being parsed correctly
+
+### Change
+- Now travis test on multiple node versions
+
 ## 1.1.9 - 2018-08-05
 ### Fix
 - Issue with github webhook without secret, not receiving the header
