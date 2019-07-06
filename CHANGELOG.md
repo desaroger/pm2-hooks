@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 1.1.12 - 2019-07-06
+### Fix
+- Hooks with secret not working as not being able to hash the raw body
+
 ## 1.1.10/11 - 2019-07-06
 ### Fix
 - Issue with bitbucket body not being parsed correctly
