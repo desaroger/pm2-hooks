@@ -1,4 +1,4 @@
-/**
+`/**
  * Created by desaroger on 25/02/17.
  */
 
@@ -102,6 +102,7 @@ class Pm2Module {
         let route = {
             name,
             type: config.type,
+            secret: config.secret,
             method: c(function* (payload) {
                 log(`Parsed payload: ${JSON.stringify(payload)}`);
                 try {

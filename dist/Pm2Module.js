@@ -125,6 +125,7 @@ var Pm2Module = function () {
             var route = {
                 name: name,
                 type: config.type,
+                secret: config.secret,
                 method: c( /*#__PURE__*/regeneratorRuntime.mark(function _callee(payload) {
                     var err;
                     return regeneratorRuntime.wrap(function _callee$(_context) {
