@@ -372,7 +372,7 @@ describe('webhookServer', () => {
                         'x-github-event': 'push',
                         'x-hub-signature': 'sha1=nopenopenope'
                     },
-                    body: 'superbody'
+                    rawBody: 'superbody'
                 };
                 log.mock((msg, status) => {
                     expect(status).to.equal(2);
@@ -392,7 +392,7 @@ describe('webhookServer', () => {
                         'x-github-event': 'push',
                         'x-hub-signature': 'sha1=241946ca6d19a74a9e52ea4b6a59ceb9c5cf309f'
                     },
-                    body: '{"lol":"yeah"}'
+                    rawBody: '{"lol":"yeah"}'
                 };
                 expect(() => whs._parseRequest(req, route)).to.not.throw();
             });

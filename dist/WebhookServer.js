@@ -101,10 +101,29 @@ var WebhookServer = function () {
     }, {
         key: '_parseBody',
         value: function _parseBody(req, res, fn) {
+            var rawBodyParser = function rawBodyParser(req2, res2, buf, encoding) {
+                if (buf && buf.length) {
+                    req2.rawBody = buf.toString(encoding || 'utf8');
+                    console.log("rawBody", req2.rawBody);
+                } else {
+                    console.log("nope");
+                }
+            };
+
             bodyParser.urlencoded({
-                extended: true
+                extended: true,
+                verify: rawBodyParser
             })(req, res, function () {
-                bodyParser.json({})(req, res, fn);
+                bodyParser.json({
+                    verify: rawBodyParser
+                })(req, res, function () {
+                    bodyParser.raw({
+                        type: function type() {
+                            return true;
+                        },
+                        verify: rawBodyParser
+                    })(req, res, fn);
+                });
             });
         }
 
@@ -289,10 +308,14 @@ var WebhookServer = function () {
                         if (!req.headers['x-github-event'] || route.secret && !req.headers['x-hub-signature']) {
                             error = 'Invalid headers';
                         } else if (route.secret) {
-                            var hash = crypto.createHmac('sha1', route.secret);
-                            hash = hash.update(req.body).digest('hex');
-                            if ('sha1=' + hash !== req.headers['x-hub-signature']) {
-                                error = 'Invalid secret';
+                            if (!req.rawBody) {
+                                error = 'Secret required and body not found on request';
+                            } else {
+                                var hash = crypto.createHmac('sha1', route.secret);
+                                hash = hash.update(req.rawBody).digest('hex');
+                                if ('sha1=' + hash !== req.headers['x-hub-signature']) {
+                                    error = 'Invalid secret';
+                                }
                             }
                         }
                         return error;
