@@ -101,6 +101,7 @@ describe('Pm2Module', () => {
             });
             let result = yield callApi('/nope');
             expect(result).to.deep.equal({
+                $statusCode: 400,
                 status: 'warning',
                 message: 'Route "nope" not found',
                 code: 1
@@ -127,6 +128,7 @@ describe('Pm2Module', () => {
             });
             let result = yield callApi('/a');
             expect(result).to.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "a" was found',
                 code: 0
@@ -146,6 +148,7 @@ describe('Pm2Module', () => {
             });
             let result = yield callApi('/d');
             expect(result).to.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "d" was found',
                 code: 0
@@ -174,6 +177,7 @@ describe('Pm2Module', () => {
             });
             let result = yield expect(callApi('/a')).to.be.fulfilled;
             expect(result).to.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "a" was found',
                 code: 0
@@ -201,6 +205,7 @@ describe('Pm2Module', () => {
             });
             let result = yield expect(callApi('/b')).to.be.fulfilled;
             expect(result).to.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "b" was found',
                 code: 0
@@ -228,6 +233,7 @@ describe('Pm2Module', () => {
             });
             let result = yield expect(callApi('/c')).to.be.fulfilled;
             expect(result).to.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "c" was found',
                 code: 0
@@ -260,6 +266,7 @@ describe('Pm2Module', () => {
             });
             let result = yield callApi('/a');
             expect(result).to.deep.equal({
+                $statusCode: 500,
                 status: 'error',
                 message: 'Route "a" method error: asd',
                 code: 2
@@ -316,13 +323,12 @@ describe('Pm2Module', () => {
                 expect(msg).to.match(/No options found for "undefined" route/);
             };
             log.mock(mockLog);
-            log.mock(mockLog);
 
             _.values(objs)
                 .forEach((opts) => {
                     expect(Pm2Module._parseProcess(opts)).to.equal(null);
                 });
-            expect(log.count).to.equal(2);
+            expect(log.count).to.equal(1);
             log.checkMocks();
         });
 

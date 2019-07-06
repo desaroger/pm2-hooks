@@ -26,6 +26,12 @@ module.exports = (path, payload = false, options = {}) => {
             if (typeof body === 'string') {
                 body = JSON.parse(body);
             }
+            body.$statusCode = 200;
+            return body;
+        })
+        .catch((e) => {
+            let body = JSON.parse(e.response.body);
+            body.$statusCode = e.response.statusCode;
             return body;
         });
 };

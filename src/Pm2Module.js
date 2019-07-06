@@ -97,7 +97,8 @@ class Pm2Module {
         // Config to WebhookServer route
         let self = this;
         let name = app.name || 'unknown';
-        let commandOptions = Object.assign({}, { cwd: config.cwd || app.pm2_env.cwd }, config.commandOptions || {});
+        let cwd = config.cwd || app.pm_cwd || app.pm2_env.cwd || app.pm2_env.pm_cwd;
+        let commandOptions = Object.assign({}, { cwd }, config.commandOptions || {});
         let route = {
             name,
             type: config.type,

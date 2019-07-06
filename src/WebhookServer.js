@@ -73,11 +73,11 @@ class WebhookServer {
      * @private
      */
     _parseBody(req, res, fn) {
-      bodyParser.urlencoded({
-          extended: true
-      })(req, res, function () {
-        bodyParser.json({})(req, res, fn);
-      })
+        bodyParser.urlencoded({
+            extended: true
+        })(req, res, () => {
+            bodyParser.json({})(req, res, fn);
+        });
     }
 
     /**

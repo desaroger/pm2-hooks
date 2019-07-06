@@ -133,6 +133,7 @@ describe('webhookServer', () => {
             });
             let body = yield callApi('/working');
             expect(body).to.be.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "working" was found',
                 code: 0
@@ -151,6 +152,7 @@ describe('webhookServer', () => {
             });
             let body = yield callApi('/withoutType');
             expect(body).to.be.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "withoutType" was found',
                 code: 0
@@ -169,6 +171,7 @@ describe('webhookServer', () => {
             });
             let body = yield callApi('/lol');
             expect(body).to.be.deep.equal({
+                $statusCode: 400,
                 status: 'warning',
                 message: 'Route "lol" not found',
                 code: 1
@@ -186,6 +189,7 @@ describe('webhookServer', () => {
             });
             let body = yield callApi('/throwsError');
             expect(body).to.be.deep.equal({
+                $statusCode: 500,
                 status: 'error',
                 message: 'Route "throwsError" method error: Test error',
                 code: 2
@@ -203,6 +207,7 @@ describe('webhookServer', () => {
             });
             let body = yield callApi('/throwsString');
             expect(body).to.be.deep.equal({
+                $statusCode: 500,
                 status: 'error',
                 message: 'Route "throwsString" method error: Test throw string',
                 code: 2
@@ -234,6 +239,7 @@ describe('webhookServer', () => {
                 }
             );
             expect(body).to.be.deep.equal({
+                $statusCode: 200,
                 status: 'success',
                 message: 'Route "checkPayload" was found',
                 code: 0
@@ -262,6 +268,7 @@ describe('webhookServer', () => {
                 }
             );
             expect(body).to.be.deep.equal({
+                $statusCode: 500,
                 status: 'error',
                 message: 'Unexpected error: SuperError',
                 code: 2
