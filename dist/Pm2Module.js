@@ -120,7 +120,8 @@ var Pm2Module = function () {
             // Config to WebhookServer route
             var self = this;
             var name = app.name || 'unknown';
-            var commandOptions = Object.assign({}, { cwd: config.cwd || app.pm2_env.cwd }, config.commandOptions || {});
+            var cwd = config.cwd || app.pm_cwd || app.pm2_env.cwd || app.pm2_env.pm_cwd;
+            var commandOptions = Object.assign({}, { cwd: cwd }, config.commandOptions || {});
             var route = {
                 name: name,
                 type: config.type,
