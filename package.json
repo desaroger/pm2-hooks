@@ -1,6 +1,6 @@
 {
   "name": "pm2-hooks",
-  "version": "1.1.10",
+  "version": "1.1.11",
   "description": "Webhook server for pm2, compatible with any git repository",
   "main": "dist/index.js",
   "scripts": {
