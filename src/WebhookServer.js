@@ -65,6 +65,22 @@ class WebhookServer {
     }
 
     /**
+     * Parses the body of a request
+     *
+     * @param {http.IncomingMessage} req The Request of the call
+     * @param {http.ServerResponse} res The Response of the call
+     * @param {function} fn The function to call after the body has been parsed
+     * @private
+     */
+    _parseBody(req, res, fn) {
+      bodyParser.urlencoded({
+          extended: true
+      })(req, res, function () {
+        bodyParser.json({})(req, res, fn);
+      })
+    }
+
+    /**
      * This method is the main function of the http server.
      * Given a request, it finds out the matched route and
      * calls the method of the route.
@@ -75,14 +91,13 @@ class WebhookServer {
      */
     _handleCall(req, res) {
         let self = this;
-        bodyParser.urlencoded({
-            extended: true
-        })(req, res, c(function* () {
+        this._parseBody(req, res, c(function* () {
             try {
                 // Mock
                 let routeName = self._getRouteName(req);
                 if (!routeName) {
                     log('No route found on url', 1);
+                    res.statusCode = 400;
                     res.end(JSON.stringify({
                         status: 'warning',
                         message: 'No route found on url',
@@ -93,6 +108,7 @@ class WebhookServer {
                 let route = self.options.routes[routeName];
                 if (!route) {
                     log(`Warning: Route "${routeName}" not found`, 1);
+                    res.statusCode = 400;
                     res.end(JSON.stringify({
                         status: 'warning',
                         message: `Route "${routeName}" not found`,
@@ -112,6 +128,7 @@ class WebhookServer {
                 } catch (e) {
                     let message = e.message ? e.message : e;
                     log(`Error: Route "${routeName}" method error: ${message}`, 2);
+                    res.statusCode = 500;
                     res.end(JSON.stringify({
                         status: 'error',
                         message: `Route "${routeName}" method error: ${message}`,
@@ -129,6 +146,7 @@ class WebhookServer {
                 }));
             } catch (e) {
                 log(e.message, 2);
+                res.statusCode = 500;
                 res.end(JSON.stringify({
                     status: 'error',
                     message: `Unexpected error: ${e.message}`,
