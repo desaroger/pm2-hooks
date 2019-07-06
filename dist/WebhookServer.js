@@ -90,6 +90,25 @@ var WebhookServer = function () {
         }
 
         /**
+         * Parses the body of a request
+         *
+         * @param {http.IncomingMessage} req The Request of the call
+         * @param {http.ServerResponse} res The Response of the call
+         * @param {function} fn The function to call after the body has been parsed
+         * @private
+         */
+
+    }, {
+        key: '_parseBody',
+        value: function _parseBody(req, res, fn) {
+            bodyParser.urlencoded({
+                extended: true
+            })(req, res, function () {
+                bodyParser.json({})(req, res, fn);
+            });
+        }
+
+        /**
          * This method is the main function of the http server.
          * Given a request, it finds out the matched route and
          * calls the method of the route.
@@ -103,9 +122,7 @@ var WebhookServer = function () {
         key: '_handleCall',
         value: function _handleCall(req, res) {
             var self = this;
-            bodyParser.urlencoded({
-                extended: true
-            })(req, res, c( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
+            this._parseBody(req, res, c( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
                 var routeName, route, payload, result, message;
                 return regeneratorRuntime.wrap(function _callee$(_context) {
                     while (1) {
@@ -117,11 +134,12 @@ var WebhookServer = function () {
                                 routeName = self._getRouteName(req);
 
                                 if (routeName) {
-                                    _context.next = 6;
+                                    _context.next = 7;
                                     break;
                                 }
 
                                 log('No route found on url', 1);
+                                res.statusCode = 400;
                                 res.end(JSON.stringify({
                                     status: 'warning',
                                     message: 'No route found on url',
@@ -129,15 +147,16 @@ var WebhookServer = function () {
                                 }));
                                 return _context.abrupt('return');
 
-                            case 6:
+                            case 7:
                                 route = self.options.routes[routeName];
 
                                 if (route) {
-                                    _context.next = 11;
+                                    _context.next = 13;
                                     break;
                                 }
 
                                 log('Warning: Route "' + routeName + '" not found', 1);
+                                res.statusCode = 400;
                                 res.end(JSON.stringify({
                                     status: 'warning',
                                     message: 'Route "' + routeName + '" not found',
@@ -145,36 +164,37 @@ var WebhookServer = function () {
                                 }));
                                 return _context.abrupt('return');
 
-                            case 11:
+                            case 13:
 
                                 // Prepare the execution of the method
                                 payload = self._parseRequest(req, route);
                                 result = void 0;
-                                _context.prev = 13;
+                                _context.prev = 15;
 
                                 result = route.method(payload);
 
                                 if (!isPromise(result)) {
-                                    _context.next = 19;
+                                    _context.next = 21;
                                     break;
                                 }
 
-                                _context.next = 18;
+                                _context.next = 20;
                                 return result;
 
-                            case 18:
+                            case 20:
                                 result = _context.sent;
 
-                            case 19:
-                                _context.next = 27;
+                            case 21:
+                                _context.next = 30;
                                 break;
 
-                            case 21:
-                                _context.prev = 21;
-                                _context.t0 = _context['catch'](13);
+                            case 23:
+                                _context.prev = 23;
+                                _context.t0 = _context['catch'](15);
                                 message = _context.t0.message ? _context.t0.message : _context.t0;
 
                                 log('Error: Route "' + routeName + '" method error: ' + message, 2);
+                                res.statusCode = 500;
                                 res.end(JSON.stringify({
                                     status: 'error',
                                     message: 'Route "' + routeName + '" method error: ' + message,
@@ -182,7 +202,7 @@ var WebhookServer = function () {
                                 }));
                                 return _context.abrupt('return');
 
-                            case 27:
+                            case 30:
 
                                 log('Success: Route "' + routeName + '" was found', 0);
                                 res.end(JSON.stringify({
@@ -191,26 +211,27 @@ var WebhookServer = function () {
                                     code: 0,
                                     result: result
                                 }));
-                                _context.next = 35;
+                                _context.next = 39;
                                 break;
 
-                            case 31:
-                                _context.prev = 31;
+                            case 34:
+                                _context.prev = 34;
                                 _context.t1 = _context['catch'](0);
 
                                 log(_context.t1.message, 2);
+                                res.statusCode = 500;
                                 res.end(JSON.stringify({
                                     status: 'error',
                                     message: 'Unexpected error: ' + _context.t1.message,
                                     code: 2
                                 }));
 
-                            case 35:
+                            case 39:
                             case 'end':
                                 return _context.stop();
                         }
                     }
-                }, _callee, this, [[0, 31], [13, 21]]);
+                }, _callee, this, [[0, 34], [15, 23]]);
             })));
         }
 
@@ -265,7 +286,7 @@ var WebhookServer = function () {
                 var checksMap = {
                     github: function github() {
                         var error = false;
-                        if (!req.headers['x-github-event'] || !req.headers['x-hub-signature']) {
+                        if (!req.headers['x-github-event'] || route.secret && !req.headers['x-hub-signature']) {
                             error = 'Invalid headers';
                         } else if (route.secret) {
                             var hash = crypto.createHmac('sha1', route.secret);

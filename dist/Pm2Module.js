@@ -105,10 +105,10 @@ var Pm2Module = function () {
         key: '_parseProcess',
         value: function _parseProcess(app) {
             // Check data
-            if (!app) {
+            if (!app || !app.pm2_env) {
                 return null;
             }
-            var config = _.get(app, 'pm2_env.env_hook');
+            var config = app.pm2_env.env_hook;
             if (!config) {
                 log('No options found for "' + app.name + '" route');
                 return null;
@@ -120,7 +120,7 @@ var Pm2Module = function () {
             // Config to WebhookServer route
             var self = this;
             var name = app.name || 'unknown';
-            var commandOptions = Object.assign({}, { cwd: config.cwd || app.pm_cwd }, config.commandOptions || {});
+            var commandOptions = Object.assign({}, { cwd: config.cwd || app.pm2_env.cwd }, config.commandOptions || {});
             var route = {
                 name: name,
                 type: config.type,

@@ -82,10 +82,10 @@ class Pm2Module {
      */
     static _parseProcess(app) {
         // Check data
-        if (!app) {
+        if (!app || !app.pm2_env) {
             return null;
         }
-        let config = _.get(app, 'pm2_env.env_hook');
+        let config = app.pm2_env.env_hook;
         if (!config) {
             log(`No options found for "${app.name}" route`);
             return null;
@@ -97,7 +97,7 @@ class Pm2Module {
         // Config to WebhookServer route
         let self = this;
         let name = app.name || 'unknown';
-        let commandOptions = Object.assign({}, { cwd: config.cwd || app.pm_cwd }, config.commandOptions || {});
+        let commandOptions = Object.assign({}, { cwd: config.cwd || app.pm2_env.cwd }, config.commandOptions || {});
         let route = {
             name,
             type: config.type,
