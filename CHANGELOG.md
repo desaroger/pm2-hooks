@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 
+### Fix
+- Respond to the webhook server without waiting the command to end. Fixes issues with Github Webhook timeout(10s).
+
 ## 1.1.12 - 2019-07-06
 ### Fix
 - Hooks with secret not working as not being able to hash the raw body

@@ -257,21 +257,22 @@ describe('Pm2Module', () => {
                 expect(msg).to.match(/Running command: echo hi/);
             });
             log.mock((msg, status) => {
-                expect(status).to.equal(2);
-                expect(msg).to.match(/Error on "a" route: asd/);
+                expect(status).to.equal(0);
+                expect(msg).to.match(/Route "a" was found/);
             });
             log.mock((msg, status) => {
                 expect(status).to.equal(2);
-                expect(msg).to.match(/Error: Route "a" method error: asd/);
+                expect(msg).to.match(/Error on "a" route: asd/);
             });
             let result = yield callApi('/a');
             expect(result).to.deep.equal({
-                $statusCode: 500,
-                status: 'error',
-                message: 'Route "a" method error: asd',
-                code: 2
+                $statusCode: 200,
+                status: 'success',
+                message: 'Route "a" was found',
+                code: 0
             });
             log.checkMocks();
+            expect(log.count).to.equal(4);
         }));
     });
 
