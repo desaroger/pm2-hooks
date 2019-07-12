@@ -13,8 +13,7 @@ var childProcess = require('child_process');
 var WebhookServer = require('./WebhookServer');
 
 var _require = require('./utils'),
-    log = _require.log,
-    c = _require.c;
+    log = _require.log;
 
 var Pm2Module = function () {
     function Pm2Module() {
@@ -126,47 +125,29 @@ var Pm2Module = function () {
                 name: name,
                 type: config.type,
                 secret: config.secret,
-                method: c( /*#__PURE__*/regeneratorRuntime.mark(function _callee(payload) {
-                    var err;
-                    return regeneratorRuntime.wrap(function _callee$(_context) {
-                        while (1) {
-                            switch (_context.prev = _context.next) {
-                                case 0:
-                                    log('Parsed payload: ' + JSON.stringify(payload));
-                                    _context.prev = 1;
-
-                                    if (!config.command) {
-                                        _context.next = 6;
-                                        break;
-                                    }
-
-                                    log('Running command: ' + config.command);
-                                    _context.next = 6;
-                                    return self._runCommand(config.command, commandOptions);
-
-                                case 6:
-                                    _context.next = 13;
-                                    break;
-
-                                case 8:
-                                    _context.prev = 8;
-                                    _context.t0 = _context['catch'](1);
-                                    err = _context.t0.message || _context.t0;
-
-                                    log('Error on "' + name + '" route: ' + err, 2);
-                                    throw _context.t0;
-
-                                case 13:
-                                case 'end':
-                                    return _context.stop();
-                            }
+                method: function method(payload) {
+                    log('Parsed payload: ' + JSON.stringify(payload));
+                    try {
+                        if (config.command) {
+                            log('Running command: ' + config.command);
+                            self._runCommand(config.command, commandOptions).catch(function (e) {
+                                return onError(name, e);
+                            });
                         }
-                    }, _callee, this, [[1, 8]]);
-                }))
+                    } catch (e) {
+                        onError(name, e);
+                    }
+                }
             };
             route = cleanObj(route);
 
             return route;
+
+            function onError(routeName, e) {
+                var err = e.message || e;
+                log('Error on "' + name + '" route: ' + err, 2);
+                throw e;
+            }
         }
 
         /**
