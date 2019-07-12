@@ -5,7 +5,7 @@
 let _ = require('lodash');
 let childProcess = require('child_process');
 let WebhookServer = require('./WebhookServer');
-let { log, c } = require('./utils');
+let { log } = require('./utils');
 
 class Pm2Module {
 
@@ -103,23 +103,28 @@ class Pm2Module {
             name,
             type: config.type,
             secret: config.secret,
-            method: c(function* (payload) {
+            method(payload) {
                 log(`Parsed payload: ${JSON.stringify(payload)}`);
                 try {
                     if (config.command) {
                         log(`Running command: ${config.command}`);
-                        yield self._runCommand(config.command, commandOptions);
+                        self._runCommand(config.command, commandOptions)
+                            .catch(e => onError(name, e));
                     }
                 } catch (e) {
-                    let err = e.message || e;
-                    log(`Error on "${name}" route: ${err}`, 2);
-                    throw e;
+                    onError(name, e);
                 }
-            })
+            }
         };
         route = cleanObj(route);
 
         return route;
+
+        function onError(routeName, e) {
+            let err = e.message || e;
+            log(`Error on "${name}" route: ${err}`, 2);
+            throw e;
+        }
     }
 
     /**
