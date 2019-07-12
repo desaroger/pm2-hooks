@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## 
+## 1.1.13 - 2019-07-12
 ### Fix
 - Respond to the webhook server without waiting the command to end. Fixes issues with Github Webhook timeout(10s).
 
